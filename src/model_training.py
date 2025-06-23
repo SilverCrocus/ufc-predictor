@@ -19,7 +19,10 @@ class UFCModelTrainer:
         self.random_state = random_state
         self.models = {}
         self.scalers = {}
+        self.model_scores = {}
         self.feature_columns = None
+        self.X_test = None
+        self.y_test = None
         
     def split_data(self, X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> Tuple:
         """Split data into training and testing sets."""
@@ -106,6 +109,9 @@ class UFCModelTrainer:
         # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
         
+        # Store the score for later retrieval
+        self.model_scores[model_name] = accuracy
+        
         results = {
             'accuracy': accuracy,
             'classification_report': classification_report(y_test, y_pred, 
@@ -150,6 +156,39 @@ class UFCModelTrainer:
         
         return importances
     
+    def get_model_score(self, model_name: str, X_test: pd.DataFrame = None, y_test: pd.Series = None) -> float:
+        """Get the accuracy score for a trained model."""
+        if model_name not in self.models:
+            raise ValueError(f"Model '{model_name}' not found. Available models: {list(self.models.keys())}")
+        
+        # First check if we have stored scores from evaluation
+        if model_name in self.model_scores:
+            return self.model_scores[model_name]
+        
+        # Use provided test data or stored test data
+        if X_test is None and hasattr(self, 'X_test') and self.X_test is not None:
+            X_test = self.X_test
+        if y_test is None and hasattr(self, 'y_test') and self.y_test is not None:
+            y_test = self.y_test
+            
+        # If test data available, calculate score
+        if X_test is not None and y_test is not None:
+            model = self.models[model_name]
+            
+            # Handle scaling for logistic regression
+            if model_name == 'logistic_regression' and model_name in self.scalers:
+                X_test_processed = self.scalers[model_name].transform(X_test)
+            else:
+                X_test_processed = X_test
+            
+            y_pred = model.predict(X_test_processed)
+            score = accuracy_score(y_test, y_pred)
+            self.model_scores[model_name] = score  # Store for future use
+            return score
+        
+        # Default fallback
+        raise ValueError(f"No test data available and no stored score found for {model_name}")
+
     def save_model(self, model_name: str, filepath: str, feature_columns: list = None):
         """Save a trained model to disk."""
         if model_name not in self.models:
@@ -203,6 +242,10 @@ def train_complete_pipeline(X: pd.DataFrame, y: pd.Series,
     # Split data
     X_train, X_test, y_train, y_test = trainer.split_data(X, y)
     print(f"Data split - Training: {X_train.shape}, Testing: {X_test.shape}")
+    
+    # Store test data for later use
+    trainer.X_test = X_test
+    trainer.y_test = y_test
     
     # Train logistic regression
     print("\nTraining Logistic Regression...")
