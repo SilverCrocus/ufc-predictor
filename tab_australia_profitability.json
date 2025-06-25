@@ -1,0 +1,115 @@
+{
+  "total_fights": 10,
+  "profitable_opportunities": 9,
+  "total_expected_profit": 336.7345,
+  "opportunities": [
+    {
+      "fighter": "Niko Price",
+      "opponent": "Jacobe Smith",
+      "event": "UFC 317",
+      "tab_decimal_odds": 10.0,
+      "american_odds": 900,
+      "model_prob": 0.5,
+      "market_prob": 0.1,
+      "expected_value": 4.0,
+      "recommended_bet": 50.0,
+      "expected_profit": 200.0
+    },
+    {
+      "fighter": "Alvin Hines",
+      "opponent": "Jhonata Diniz",
+      "event": "UFC 317",
+      "tab_decimal_odds": 3.4,
+      "american_odds": 240,
+      "model_prob": 0.5,
+      "market_prob": 0.29411764705882354,
+      "expected_value": 0.7,
+      "recommended_bet": 50.0,
+      "expected_profit": 35.0
+    },
+    {
+      "fighter": "Viviane Araujo",
+      "opponent": "Tracy Cortez",
+      "event": "UFC 317",
+      "tab_decimal_odds": 3.05,
+      "american_odds": 204,
+      "model_prob": 0.5,
+      "market_prob": 0.32894736842105265,
+      "expected_value": 0.52,
+      "recommended_bet": 50.0,
+      "expected_profit": 26.0
+    },
+    {
+      "fighter": "Steve Erceg",
+      "opponent": "Alexandre Pantoja",
+      "event": "UFC 317 - Featured Fight",
+      "tab_decimal_odds": 2.95,
+      "american_odds": 195,
+      "model_prob": 0.4511,
+      "market_prob": 0.3389830508474576,
+      "expected_value": 0.3307450000000002,
+      "recommended_bet": 50.0,
+      "expected_profit": 16.537250000000007
+    },
+    {
+      "fighter": "Jack Hermansson",
+      "opponent": "Gregory Rodrigues",
+      "event": "UFC 317",
+      "tab_decimal_odds": 2.65,
+      "american_odds": 165,
+      "model_prob": 0.5,
+      "market_prob": 0.37735849056603776,
+      "expected_value": 0.32499999999999996,
+      "recommended_bet": 50.0,
+      "expected_profit": 16.249999999999996
+    },
+    {
+      "fighter": "Charles Oliveira",
+      "opponent": "Ilia Topuria",
+      "event": "UFC 317 - Featured Fight",
+      "tab_decimal_odds": 4.25,
+      "american_odds": 325,
+      "model_prob": 0.3047,
+      "market_prob": 0.23529411764705882,
+      "expected_value": 0.2949750000000001,
+      "recommended_bet": 50.0,
+      "expected_profit": 14.748750000000005
+    },
+    {
+      "fighter": "Viacheslav Borshchev",
+      "opponent": "Terrance McKinney",
+      "event": "UFC 317",
+      "tab_decimal_odds": 2.5,
+      "american_odds": 150,
+      "model_prob": 0.5,
+      "market_prob": 0.4,
+      "expected_value": 0.25,
+      "recommended_bet": 50.0,
+      "expected_profit": 12.5
+    },
+    {
+      "fighter": "Hyder Amil",
+      "opponent": "Jose Delgado",
+      "event": "UFC 317",
+      "tab_decimal_odds": 2.35,
+      "american_odds": 135,
+      "model_prob": 0.5,
+      "market_prob": 0.425531914893617,
+      "expected_value": 0.17500000000000004,
+      "recommended_bet": 50.0,
+      "expected_profit": 8.750000000000002
+    },
+    {
+      "fighter": "Payton Talbott",
+      "opponent": "Felipe Lima",
+      "event": "UFC 317",
+      "tab_decimal_odds": 2.65,
+      "american_odds": 165,
+      "model_prob": 0.4298,
+      "market_prob": 0.37735849056603776,
+      "expected_value": 0.13896999999999993,
+      "recommended_bet": 50.0,
+      "expected_profit": 6.948499999999997
+    }
+  ]
+}
