@@ -45,7 +45,7 @@ class StealthTABProfitabilityAnalyzer:
     
     def analyze_profitability_live(self, my_predictions: Dict[str, float], 
                                   fight_card: List[str]) -> Dict:
-        """Analyze profitability using live TAB odds - FIXED VERSION"""
+        """Analyze profitability using live TAB odds - CLEAN VERSION"""
         
         print("💰 LIVE TAB PROFITABILITY ANALYSIS")
         print("=" * 50)
@@ -60,11 +60,7 @@ class StealthTABProfitabilityAnalyzer:
         # Clean and filter odds to H2H only
         clean_odds_data = self.filter_h2h_odds_only(live_odds_data)
         
-        print(f"\n📊 H2H Odds Summary:")
-        for fight, h2h_odds in clean_odds_data.items():
-            print(f"🥊 {fight}: {len(h2h_odds)} H2H markets")
-            for market, odds in h2h_odds.items():
-                print(f"   {market}: {odds}")
+        print(f"\n🎯 Found TAB odds for {len(clean_odds_data)} fights")
         
         # Analyze each fight for profitability
         profitable_bets = []
@@ -72,8 +68,6 @@ class StealthTABProfitabilityAnalyzer:
         processed_fighters = set()  # Prevent duplicates
         
         for fight_name, h2h_odds in clean_odds_data.items():
-            print(f"\n🥊 ANALYZING: {fight_name}")
-            print("-" * 40)
             
             # Extract fighter names from fight string
             if " vs. " in fight_name:
@@ -94,18 +88,13 @@ class StealthTABProfitabilityAnalyzer:
                     continue
                 
                 # Find exact fighter match for this market
-                matched_fighter = self.match_market_to_fighter(market_name, my_predictions, fighter1, fighter2)
+                matched_fighter = self.match_market_to_fighter_clean(market_name, my_predictions, fighter1, fighter2)
                 
                 if matched_fighter and matched_fighter not in processed_fighters:
                     pred_fighter, my_prob, similarity = matched_fighter
                     
                     # Calculate expected value
                     expected_value = self.calculate_expected_value(my_prob, tab_odds)
-                    
-                    print(f"   🎯 {pred_fighter} ({similarity:.2f} match)")
-                    print(f"      My prediction: {my_prob:.1%}")
-                    print(f"      TAB H2H odds: {tab_odds}")
-                    print(f"      Expected value: {expected_value:.3f}")
                     
                     if expected_value > 0.05:  # 5% edge threshold
                         bet_size = self.calculate_kelly_bet_size(my_prob, tab_odds)
@@ -125,22 +114,22 @@ class StealthTABProfitabilityAnalyzer:
                         
                         total_expected_profit += expected_profit
                         processed_fighters.add(pred_fighter)  # Mark as processed
-                        
-                        print(f"      💰 PROFITABLE! Bet ${bet_size:.2f} for ${expected_profit:.2f} expected profit")
-                    else:
-                        print(f"      ❌ Not profitable (EV: {expected_value:.3f})")
         
-        # Summary
-        print(f"\n📊 PROFITABILITY SUMMARY")
+        # Clean summary
+        print(f"\n📊 ANALYSIS RESULTS")
         print("=" * 30)
-        print(f"💰 Total profitable bets: {len(profitable_bets)}")
-        print(f"💰 Total expected profit: ${total_expected_profit:.2f}")
+        print(f"💰 Profitable opportunities: {len(profitable_bets)}")
+        print(f"💵 Total expected profit: ${total_expected_profit:.2f}")
         
         if profitable_bets:
             print(f"\n🎯 RECOMMENDED BETS:")
+            print("-" * 40)
             for i, bet in enumerate(profitable_bets, 1):
                 opponent = self.get_opponent_name(bet['fight'], bet['fighter'])
-                print(f"{i}. {bet['fighter']} @ {bet['tab_odds']} (vs {opponent}) - Bet ${bet['bet_size']:.2f} (EV: +${bet['expected_profit']:.2f})")
+                print(f"{i}. {bet['fighter']} @ {bet['tab_odds']} (vs {opponent})")
+                print(f"   💰 Bet ${bet['bet_size']:.2f} → Expected profit: ${bet['expected_profit']:.2f}")
+                print(f"   📈 Edge: {bet['expected_value']:.1%}")
+                print()
         
         return {
             'profitable_bets': profitable_bets,
@@ -232,14 +221,12 @@ class StealthTABProfitabilityAnalyzer:
         
         return has_h2h and not has_exclude
     
-    def match_market_to_fighter(self, market_name: str, my_predictions: Dict[str, float], 
-                               fighter1: str, fighter2: str) -> Optional[Tuple[str, float, float]]:
-        """Match a market to exactly one fighter from predictions"""
+    def match_market_to_fighter_clean(self, market_name: str, my_predictions: Dict[str, float], 
+                                     fighter1: str, fighter2: str) -> Optional[Tuple[str, float, float]]:
+        """Clean version - match market to fighter without verbose logging"""
         
         best_match = None
         best_similarity = 0.0
-        
-        print(f"      🔍 Matching market '{market_name}' to predictions...")
         
         for pred_fighter, my_prob in my_predictions.items():
             
@@ -248,18 +235,11 @@ class StealthTABProfitabilityAnalyzer:
             
             # Strategy 1: Direct name match in market (e.g., "H2H TOPURIA Ilia" -> "Ilia Topuria")
             if self.name_in_market(pred_fighter, market_name):
-                similarities.append(0.95)  # High confidence for name match
-                print(f"         📍 Name match: {pred_fighter} found in {market_name}")
-                
                 # CRITICAL FIX: Only match if this fighter should be in this market
-                # Check if market is for this specific fighter
                 if self.market_is_for_fighter(market_name, pred_fighter):
-                    similarities.append(0.98)  # Even higher confidence
-                    print(f"         ✅ Market confirmed for {pred_fighter}")
+                    similarities.append(0.98)  # High confidence
                 else:
-                    # This market is for the opponent, not this fighter
-                    print(f"         ❌ Market is for opponent, not {pred_fighter}")
-                    continue
+                    continue  # This market is for the opponent
             
             # Strategy 2: Check if prediction fighter matches fight fighters AND market
             fighter1_match = self.names_similar(pred_fighter, fighter1)
@@ -267,25 +247,16 @@ class StealthTABProfitabilityAnalyzer:
             
             if fighter1_match > 0.8 and self.market_is_for_fighter(market_name, fighter1):
                 similarities.append(fighter1_match)
-                print(f"         📍 Fighter1 match: {pred_fighter} ≈ {fighter1} ({fighter1_match:.2f}) AND market matches")
             
             if fighter2_match > 0.8 and self.market_is_for_fighter(market_name, fighter2):
-                similarities.append(fighter2_match)  
-                print(f"         📍 Fighter2 match: {pred_fighter} ≈ {fighter2} ({fighter2_match:.2f}) AND market matches")
+                similarities.append(fighter2_match)
             
             if similarities:
                 max_similarity = max(similarities)
                 
-                if max_similarity > best_similarity and max_similarity > 0.7:  # Lowered threshold
+                if max_similarity > best_similarity and max_similarity > 0.7:
                     best_similarity = max_similarity
                     best_match = (pred_fighter, my_prob, best_similarity)
-                    print(f"         ✅ Best match so far: {pred_fighter} ({max_similarity:.2f})")
-        
-        if best_match:
-            pred_fighter, my_prob, similarity = best_match
-            print(f"      🎯 Final match: {pred_fighter} ({similarity:.2f})")
-        else:
-            print(f"      ❌ No match found for {market_name}")
         
         return best_match
     
