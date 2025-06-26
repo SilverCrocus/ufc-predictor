@@ -181,46 +181,217 @@ class TABProfitabilityAnalyzer:
             return {}
     
     def match_fighters_to_odds(self, model_predictions: Dict[str, float], raw_odds: Dict[str, float]) -> Dict[str, float]:
-        """Match prediction fighter names to scraped odds using fuzzy matching with smart fight pairing"""
+        """Match prediction fighter names to scraped odds using proper TAB data structure"""
         
         matched_odds = {}
-        scraped_names = list(raw_odds.keys())
-        used_markets = set()  # Track which markets we've already used
         
         print("🔍 MATCHING FIGHTERS TO ODDS:")
         print("-" * 40)
         
-        # First pass: match fighters to unique markets
-        for fighter_name in model_predictions.keys():
-            best_match, score = self.find_best_match(fighter_name, scraped_names)
+        # Parse TAB odds data structure
+        # TAB has multiple formats:
+        # 1. "Oliveira v Topuria": 4.25 (fight market - left fighter's odds)
+        # 2. "H2H LASTNAME Firstname": 4.25 (head-to-head market - specific fighter's odds)
+        # 3. "Markets": X.XX (non-fighter data - skip)
+        
+        # Create mapping of fight markets to individual fighters
+        fight_markets = {}  # fight_key -> full fight data
+        h2h_markets = {}    # cleaned_name -> odds
+        fight_pairs = {}    # track fighter pairs for missing H2H data
+        
+        print("📊 Parsing TAB odds structure...")
+        
+        for market_name, odds in raw_odds.items():
+            # Skip non-fighter entries
+            if market_name.lower() in ['markets', 'market']:
+                print(f"⏭️  Skipping: {market_name}")
+                continue
             
-            if best_match and score > 0.6:
-                # For fight markets like "Oliveira v Topuria", we need to assign different odds to each fighter
-                if best_match not in used_markets:
-                    # First fighter gets the odds as-is
-                    matched_odds[fighter_name] = raw_odds[best_match]
-                    used_markets.add(best_match)
-                    print(f"✅ {fighter_name} → {best_match} ({score:.2f} match, odds: {raw_odds[best_match]})")
-                else:
-                    # Second fighter in same fight - calculate implied opponent odds
-                    original_odds = raw_odds[best_match]
-                    # If original odds are for the other fighter, calculate the opponent odds
-                    # For decimal odds: opponent_odds = 1 / (1 - 1/original_odds)
-                    if original_odds > 1:
-                        opponent_prob = 1 - (1 / original_odds)
-                        opponent_odds = 1 / opponent_prob if opponent_prob > 0 else 1.01
-                        matched_odds[fighter_name] = round(opponent_odds, 2)
-                        print(f"✅ {fighter_name} → {best_match} ({score:.2f} match, calculated opponent odds: {opponent_odds:.2f})")
-                    else:
-                        print(f"❌ {fighter_name} → Invalid odds calculation for {best_match}")
+            if " v " in market_name:
+                # Fight market format: "Oliveira v Topuria"
+                fighters = market_name.split(" v ")
+                if len(fighters) == 2:
+                    fighter_a = fighters[0].strip()
+                    fighter_b = fighters[1].strip()
+                    
+                    # Store this as a fight market (left fighter gets these odds)
+                    fight_key = f"{fighter_a} vs {fighter_b}"
+                    fight_markets[fight_key] = {
+                        'fighter_a': fighter_a,
+                        'fighter_b': fighter_b,
+                        'fighter_a_odds': odds,
+                        'market_name': market_name
+                    }
+                    
+                    # Track the pair for later H2H matching
+                    fight_pairs[fighter_a.lower()] = fighter_b
+                    fight_pairs[fighter_b.lower()] = fighter_a
+                    
+                    print(f"🥊 Fight market: {market_name} → {fighter_a} gets odds {odds}")
+                    
+            elif market_name.startswith("H2H "):
+                # Head-to-head format: "H2H LASTNAME Firstname"
+                h2h_part = market_name.replace("H2H ", "").strip()
+                
+                # Parse "LASTNAME Firstname" format
+                parts = h2h_part.split()
+                if len(parts) >= 2:
+                    # TAB format: "H2H LASTNAME Firstname"
+                    last_name = parts[0].title()  # OLIVEIRA -> Oliveira
+                    first_name = parts[1].title()  # charles -> Charles
+                    
+                    # Create possible name variations
+                    full_name = f"{first_name} {last_name}"
+                    h2h_markets[full_name] = odds
+                    h2h_markets[last_name] = odds  # Also by last name
+                    
+                    print(f"👤 H2H market: {market_name} → {full_name} gets odds {odds}")
+        
+        print(f"\n📈 Parsed {len(fight_markets)} fight markets and {len(h2h_markets)} H2H entries")
+        
+        # CRITICAL FIX: Create complete fight data by calculating missing odds
+        print("\n⚡ CALCULATING MISSING FIGHTER ODDS:")
+        print("-" * 40)
+        
+        complete_fight_data = {}
+        for fight_key, fight_data in fight_markets.items():
+            enhanced_data = fight_data.copy()
+            
+            # Try to find right fighter's odds in H2H markets first
+            right_fighter = fight_data['fighter_b']
+            right_fighter_odds = None
+            
+            # Look for H2H odds for right fighter
+            for h2h_name, h2h_odds in h2h_markets.items():
+                if (self.similarity(right_fighter, h2h_name) > 0.8 or 
+                    any(part.lower() in right_fighter.lower() for part in h2h_name.split())):
+                    right_fighter_odds = h2h_odds
+                    print(f"🔗 Found H2H for {right_fighter}: {h2h_odds}")
+                    break
+            
+            if right_fighter_odds:
+                enhanced_data['fighter_b_odds'] = right_fighter_odds
             else:
-                print(f"❌ {fighter_name} → No match found (best: {score:.2f})")
+                # CALCULATE implied odds for right fighter
+                # In a two-outcome fight: P(A) + P(B) = 1
+                # If left fighter odds = X, then P(A) = 1/X
+                # P(B) = 1 - P(A) = 1 - 1/X
+                # Right fighter odds = 1/P(B) = 1/(1 - 1/X)
+                left_odds = fight_data['fighter_a_odds']
+                if left_odds > 1.0:
+                    left_prob = 1.0 / left_odds
+                    right_prob = 1.0 - left_prob
+                    if right_prob > 0:
+                        implied_right_odds = 1.0 / right_prob
+                        enhanced_data['fighter_b_odds'] = round(implied_right_odds, 2)
+                        print(f"🧮 Calculated {right_fighter} odds: {implied_right_odds:.2f} (from {fight_data['fighter_a']} odds {left_odds})")
+                    else:
+                        print(f"❌ Cannot calculate odds for {right_fighter} - invalid probability")
+                else:
+                    print(f"❌ Invalid left fighter odds for {fight_data['fighter_a']}: {left_odds}")
+            
+            complete_fight_data[fight_key] = enhanced_data
+        
+        # Now match our model predictions to available odds
+        print("\n🎯 MATCHING MODEL PREDICTIONS:")
+        print("-" * 40)
+        
+        for fighter_name in model_predictions.keys():
+            matched = False
+            
+            # Strategy 1: Direct match in H2H markets (most reliable)
+            best_h2h_match = None
+            best_h2h_score = 0
+            
+            for h2h_name, odds in h2h_markets.items():
+                # Try exact similarity
+                similarity = self.similarity(fighter_name, h2h_name)
+                
+                # Try individual name parts
+                fighter_parts = fighter_name.lower().split()
+                h2h_parts = h2h_name.lower().split()
+                
+                part_matches = 0
+                for f_part in fighter_parts:
+                    for h_part in h2h_parts:
+                        if len(f_part) > 2 and len(h_part) > 2:  # Avoid short words
+                            if f_part in h_part or h_part in f_part or self.similarity(f_part, h_part) > 0.8:
+                                part_matches += 1
+                
+                # Boost score if we have good part matches
+                if part_matches > 0:
+                    similarity = max(similarity, part_matches / max(len(fighter_parts), len(h2h_parts)))
+                
+                if similarity > best_h2h_score:
+                    best_h2h_score = similarity
+                    best_h2h_match = (h2h_name, odds, similarity)
+            
+            if best_h2h_match and best_h2h_score > 0.7:
+                h2h_name, odds, similarity = best_h2h_match
+                matched_odds[fighter_name] = odds
+                matched = True
+                print(f"✅ {fighter_name} → H2H {h2h_name} (similarity: {similarity:.2f}, odds: {odds})")
+            
+            if matched:
+                continue
+            
+            # Strategy 2: Match to complete fight data
+            best_fight_match = None
+            best_fight_score = 0
+            
+            for fight_key, fight_data in complete_fight_data.items():
+                # Check match with left fighter
+                left_sim = self.similarity(fighter_name, fight_data['fighter_a'])
+                # Also try last name matching
+                fighter_last = fighter_name.split()[-1] if fighter_name.split() else fighter_name
+                left_last = fight_data['fighter_a'].split()[-1] if fight_data['fighter_a'].split() else fight_data['fighter_a']
+                left_sim = max(left_sim, self.similarity(fighter_last, left_last))
+                
+                # Check match with right fighter  
+                right_sim = self.similarity(fighter_name, fight_data['fighter_b'])
+                right_last = fight_data['fighter_b'].split()[-1] if fight_data['fighter_b'].split() else fight_data['fighter_b']
+                right_sim = max(right_sim, self.similarity(fighter_last, right_last))
+                
+                if left_sim > 0.6 and left_sim > best_fight_score:
+                    best_fight_score = left_sim
+                    best_fight_match = (fight_data, 'left', left_sim)
+                elif right_sim > 0.6 and right_sim > best_fight_score:
+                    best_fight_score = right_sim  
+                    best_fight_match = (fight_data, 'right', right_sim)
+            
+            if best_fight_match:
+                fight_data, position, similarity = best_fight_match
+                
+                if position == 'left':
+                    matched_odds[fighter_name] = fight_data['fighter_a_odds']
+                    print(f"✅ {fighter_name} → {fight_data['market_name']} (LEFT, sim: {similarity:.2f}, odds: {fight_data['fighter_a_odds']})")
+                else:
+                    if 'fighter_b_odds' in fight_data:
+                        matched_odds[fighter_name] = fight_data['fighter_b_odds']
+                        odds_type = "calculated" if fight_data['fighter_b_odds'] != fight_data.get('original_b_odds') else "actual"
+                        print(f"✅ {fighter_name} → {fight_data['market_name']} (RIGHT, sim: {similarity:.2f}, odds: {fight_data['fighter_b_odds']} {odds_type})")
+                    else:
+                        print(f"❌ {fighter_name} → {fight_data['market_name']} (RIGHT but no odds available)")
+                
+                matched = True
+            
+            if not matched:
+                print(f"❌ {fighter_name} → No suitable match found")
         
         print(f"\n📊 Successfully matched {len(matched_odds)}/{len(model_predictions)} fighters")
         
-        # If we have missing fighters, run debug mode
+        # Show final summary
+        if matched_odds:
+            print(f"\n✅ FINAL MATCHED ODDS:")
+            for fighter, odds in matched_odds.items():
+                print(f"   • {fighter}: {odds}")
+        
+        # If we still have missing fighters, run debug mode
         if len(matched_odds) < len(model_predictions):
-            self.debug_missing_fighters(model_predictions, raw_odds)
+            unmatched = [f for f in model_predictions.keys() if f not in matched_odds]
+            print(f"\n❌ UNMATCHED FIGHTERS ({len(unmatched)}):")
+            for fighter in unmatched:
+                print(f"   • {fighter}")
         
         return matched_odds
     
@@ -242,18 +413,47 @@ class TABProfitabilityAnalyzer:
             Dict containing analysis results
         """
         
-        # Get fresh odds from TAB Australia
-        raw_odds = self.scrape_live_tab_odds()
+        # Get odds - either from live scraping or fixed data file
+        if self.use_live_odds:
+            raw_odds = self.scrape_live_tab_odds()
+            odds_source = 'live'
+        else:
+            # Use fixed data file when live scraping is disabled
+            try:
+                with open('raw_tab_odds.json', 'r') as f:
+                    raw_odds = json.load(f)
+                print(f"📄 Loaded {len(raw_odds)} odds from raw_tab_odds.json")
+                odds_source = 'fixed_data'
+            except FileNotFoundError:
+                print("❌ raw_tab_odds.json not found - cannot perform analysis")
+                return {
+                    'total_opportunities': 0,
+                    'total_expected_profit': 0,
+                    'bankroll': self.bankroll,
+                    'opportunities': [],
+                    'odds_source': 'none',
+                    'error': 'raw_tab_odds.json file not found'
+                }
+            except Exception as e:
+                print(f"❌ Error loading raw_tab_odds.json: {e}")
+                return {
+                    'total_opportunities': 0,
+                    'total_expected_profit': 0,
+                    'bankroll': self.bankroll,
+                    'opportunities': [],
+                    'odds_source': 'none',
+                    'error': f'Error loading odds data: {e}'
+                }
         
         if not raw_odds:
-            print("❌ No live odds available - cannot perform analysis")
+            print("❌ No odds available - cannot perform analysis")
             return {
                 'total_opportunities': 0,
                 'total_expected_profit': 0,
                 'bankroll': self.bankroll,
                 'opportunities': [],
                 'odds_source': 'none',
-                'error': 'No live odds available'
+                'error': 'No odds data available'
             }
         
         # Match fighter names to odds
@@ -264,7 +464,12 @@ class TABProfitabilityAnalyzer:
         
         print("\n🇦🇺 TAB AUSTRALIA PROFITABILITY ANALYSIS")
         print("=" * 50)
-        print("📡 Using LIVE TAB Australia odds")
+        
+        if odds_source == 'live':
+            print("📡 Using LIVE TAB Australia odds")
+        else:
+            print("📄 Using FIXED TAB Australia odds (raw_tab_odds.json)")
+        
         print("-" * 50)
         
         for fighter, model_prob in model_predictions.items():
@@ -307,7 +512,7 @@ class TABProfitabilityAnalyzer:
             'total_expected_profit': total_expected_profit,
             'bankroll': self.bankroll,
             'opportunities': opportunities,
-            'odds_source': 'live',
+            'odds_source': odds_source,
             'matched_fighters': len(matched_odds),
             'total_fighters': len(model_predictions)
         }
@@ -389,40 +594,95 @@ class TABProfitabilityAnalyzer:
         return instructions
 
     def debug_missing_fighters(self, model_predictions: Dict[str, float], raw_odds: Dict[str, float]):
-        """Debug why certain fighters aren't matching"""
+        """Debug missing fighter matches by showing available TAB odds"""
         
-        scraped_names = list(raw_odds.keys())
+        missing_fighters = []
+        for fighter in model_predictions.keys():
+            # Find which fighters didn't get matched (not in our final matched_odds)
+            # This is called from match_fighters_to_odds so we need to check differently
+            missing_fighters.append(fighter)
         
-        print("\n🔍 DEBUGGING MISSING FIGHTERS:")
-        print("-" * 50)
+        print("\n🔍 DEBUG: MISSING FIGHTER ANALYSIS")
+        print("=" * 50)
         
-        for fighter_name in model_predictions.keys():
-            best_match, score = self.find_best_match(fighter_name, scraped_names, threshold=0.4)  # Lower threshold for debugging
-            
-            if score < 0.6:
-                print(f"\n❌ {fighter_name} (best match: {score:.2f})")
-                print(f"   Best candidate: '{best_match}'")
-                
-                # Show potential matches
-                fighter_parts = fighter_name.lower().split()
-                print(f"   Looking for: {fighter_parts}")
-                
-                potential_matches = []
-                for scraped_name in scraped_names:
-                    temp_score = 0
-                    for part in fighter_parts:
-                        if part in scraped_name.lower():
-                            temp_score += 0.5
-                    if temp_score > 0:
-                        potential_matches.append((scraped_name, temp_score))
-                
-                potential_matches.sort(key=lambda x: x[1], reverse=True)
-                if potential_matches:
-                    print("   Potential candidates:")
-                    for name, score in potential_matches[:3]:
-                        print(f"     - '{name}' (contains score: {score})")
+        print(f"📋 Model Predictions ({len(model_predictions)} fighters):")
+        for fighter, prob in model_predictions.items():
+            print(f"   • {fighter}: {prob:.1%}")
+        
+        print(f"\n📊 Available TAB Odds ({len(raw_odds)} markets):")
+        
+        # Group by type for better visualization
+        fight_markets = []
+        h2h_markets = []
+        other_markets = []
+        
+        for market_name, odds in raw_odds.items():
+            if market_name.lower() in ['markets', 'market']:
+                other_markets.append(f"   • {market_name}: {odds} (SKIPPED - not fighter data)")
+            elif " v " in market_name:
+                fight_markets.append(f"   • {market_name}: {odds} (FIGHT - left fighter odds)")
+            elif market_name.startswith("H2H "):
+                h2h_name = market_name.replace("H2H ", "")
+                parts = h2h_name.split()
+                if len(parts) >= 2:
+                    cleaned = f"{parts[1].title()} {parts[0].title()}"
+                    h2h_markets.append(f"   • {market_name}: {odds} → {cleaned}")
                 else:
-                    print("   No potential candidates found")
+                    h2h_markets.append(f"   • {market_name}: {odds} (MALFORMED)")
+            else:
+                other_markets.append(f"   • {market_name}: {odds} (UNKNOWN FORMAT)")
+        
+        if fight_markets:
+            print(f"\n🥊 Fight Markets ({len(fight_markets)}):")
+            for market in fight_markets:
+                print(market)
+        
+        if h2h_markets:
+            print(f"\n👤 Head-to-Head Markets ({len(h2h_markets)}):")
+            for market in h2h_markets:
+                print(market)
+        
+        if other_markets:
+            print(f"\n❓ Other Markets ({len(other_markets)}):")
+            for market in other_markets:
+                print(market)
+        
+        print("\n💡 MATCHING SUGGESTIONS:")
+        print("-" * 30)
+        
+        for fighter in model_predictions.keys():
+            print(f"\n🎯 For '{fighter}':")
+            
+            # Show top similarity matches
+            matches = []
+            for market_name in raw_odds.keys():
+                if market_name.lower() in ['markets', 'market']:
+                    continue
+                
+                # For H2H markets, clean the name first
+                target_name = market_name
+                if market_name.startswith("H2H "):
+                    h2h_part = market_name.replace("H2H ", "")
+                    parts = h2h_part.split()
+                    if len(parts) >= 2:
+                        target_name = f"{parts[1].title()} {parts[0].title()}"
+                
+                similarity = self.similarity(fighter, target_name)
+                if similarity > 0.3:  # Show any reasonable match
+                    matches.append((market_name, target_name, similarity, raw_odds[market_name]))
+            
+            # Sort by similarity
+            matches.sort(key=lambda x: x[2], reverse=True)
+            
+            if matches:
+                print("   Top matches:")
+                for market_name, target_name, sim, odds in matches[:5]:
+                    match_type = "H2H" if market_name.startswith("H2H") else "FIGHT" if " v " in market_name else "OTHER"
+                    print(f"      {sim:.2f}: {market_name} → {target_name} (odds: {odds}) [{match_type}]")
+            else:
+                print("      No reasonable matches found")
+        
+        print(f"\n💾 Full raw odds saved to 'raw_tab_odds.json' for manual inspection")
 
 def analyze_notebook_predictions(model_predictions: Dict[str, float], bankroll: float = 1000, use_live_odds: bool = True) -> Dict:
     """
