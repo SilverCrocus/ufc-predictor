@@ -388,7 +388,7 @@ class TABAustraliaUFCScraper:
                 is_featured_fight=False
             )
         ]
-    
+
     def create_comprehensive_odds_data(self) -> Dict[str, float]:
         """Create comprehensive odds data that includes both fight markets and individual H2H odds"""
         

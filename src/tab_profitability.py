@@ -415,7 +415,7 @@ class TABProfitabilityAnalyzer:
         
         # Get odds - either from live scraping or fixed data file
         if self.use_live_odds:
-            raw_odds = self.scrape_live_tab_odds()
+        raw_odds = self.scrape_live_tab_odds()
             odds_source = 'live'
         else:
             # Use fixed data file when live scraping is disabled
@@ -466,7 +466,7 @@ class TABProfitabilityAnalyzer:
         print("=" * 50)
         
         if odds_source == 'live':
-            print("📡 Using LIVE TAB Australia odds")
+        print("📡 Using LIVE TAB Australia odds")
         else:
             print("📄 Using FIXED TAB Australia odds (raw_tab_odds.json)")
         
@@ -679,7 +679,7 @@ class TABProfitabilityAnalyzer:
                 for market_name, target_name, sim, odds in matches[:5]:
                     match_type = "H2H" if market_name.startswith("H2H") else "FIGHT" if " v " in market_name else "OTHER"
                     print(f"      {sim:.2f}: {market_name} → {target_name} (odds: {odds}) [{match_type}]")
-            else:
+                else:
                 print("      No reasonable matches found")
         
         print(f"\n💾 Full raw odds saved to 'raw_tab_odds.json' for manual inspection")
