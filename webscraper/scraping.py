@@ -1,15 +1,17 @@
-# FILE: create_dataset.py
+# FILE: scraping.py
 #
 # PURPOSE:
 # A complete, standalone script to scrape UFC fighter data,
-# clean and engineer features, and save the final datasets.
-# This version uses the corrected 'page=all' scraping logic.
+# clean and engineer features, and save the final datasets with versioning.
+# This version uses the corrected 'page=all' scraping logic and saves to the data folder.
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import string
 import time
+import os
+from pathlib import Path
 
 # --- Configuration ---
 HEADERS = {
@@ -17,6 +19,24 @@ HEADERS = {
 }
 BASE_URL = "http://ufcstats.com/statistics/fighters"
 SNAPSHOT_DATE = pd.to_datetime('today').strftime('%Y-%m-%d')
+SNAPSHOT_DATETIME = pd.to_datetime('today').strftime('%Y-%m-%d_%H-%M')
+
+# --- Data Directory Setup ---
+def setup_data_directory():
+    """Create data directory structure and return the path for this scraping session."""
+    # Get the project root (one level up from webscraper folder)
+    project_root = Path(__file__).parent.parent
+    data_dir = project_root / "data"
+    
+    # Create main data directory if it doesn't exist
+    data_dir.mkdir(exist_ok=True)
+    
+    # Create versioned subdirectory for this scraping session
+    version_dir = data_dir / f"scrape_{SNAPSHOT_DATETIME}"
+    version_dir.mkdir(exist_ok=True)
+    
+    print(f"Data will be saved to: {version_dir}")
+    return version_dir
 
 
 # --- Scraping Functions ---
@@ -147,12 +167,23 @@ def engineer_fighter_features(raw_df):
 # --- Main Execution Block ---
 
 def main():
-    print(f"--- PROCESS STARTED ON: {SNAPSHOT_DATE} ---")
+    print(f"--- UFC DATA SCRAPING PROCESS STARTED ON: {SNAPSHOT_DATE} ---")
+    
+    # Setup versioned data directory
+    print("\n--- STEP 0: Setting Up Data Directory ---")
+    data_dir = setup_data_directory()
+    
     print("\n--- STEP 1: Scraping All Fighter URLs from A-Z Index ---")
     fighter_urls = get_all_fighter_urls()
+    
     print("\n--- STEP 2: Scraping Individual Fighter Pages ---")
     all_fighter_details, all_fight_histories = [], []
-    for url in fighter_urls:
+    total_fighters = len(fighter_urls)
+    
+    for i, url in enumerate(fighter_urls, 1):
+        if i % 100 == 0 or i == total_fighters:
+            print(f"  -> Progress: {i}/{total_fighters} fighters processed ({(i/total_fighters)*100:.1f}%)")
+        
         details, history = scrape_fighter_data(url)
         if details:
             details['fighter_url'] = url
@@ -162,20 +193,63 @@ def main():
                 fight['fighter_url'] = url
             all_fight_histories.extend(history)
         time.sleep(1.5)
+    
     print("\n--- STEP 3: Saving Raw Scraped Data ---")
     fighters_raw_df = pd.DataFrame(all_fighter_details)
     fights_raw_df = pd.DataFrame(all_fight_histories)
-    fighters_raw_df.to_csv('ufc_fighters_raw.csv', index=False)
-    fights_raw_df.to_csv('ufc_fights.csv', index=False)
-    print("Raw data saved to 'ufc_fighters_raw.csv' and 'ufc_fights.csv'")
+    
+    # Save to versioned directory
+    fighters_raw_path = data_dir / f'ufc_fighters_raw_{SNAPSHOT_DATE}.csv'
+    fights_raw_path = data_dir / f'ufc_fights_{SNAPSHOT_DATE}.csv'
+    
+    fighters_raw_df.to_csv(fighters_raw_path, index=False)
+    fights_raw_df.to_csv(fights_raw_path, index=False)
+    
+    print(f"Raw data saved to:")
+    print(f"  -> {fighters_raw_path}")
+    print(f"  -> {fights_raw_path}")
+    
     print("\n--- STEP 4: Engineering Features ---")
     fighters_engineered_df = engineer_fighter_features(fighters_raw_df)
+    
     print("\n--- STEP 5: Saving Final Engineered Data ---")
-    fighters_engineered_df.to_csv('ufc_fighters_engineered.csv', index=False)
-    print("Engineered fighter data saved to 'ufc_fighters_engineered.csv'")
+    engineered_path = data_dir / f'ufc_fighters_engineered_{SNAPSHOT_DATE}.csv'
+    fighters_engineered_df.to_csv(engineered_path, index=False)
+    print(f"Engineered fighter data saved to: {engineered_path}")
+    
+    # Also save a "latest" version for easy access
+    latest_path = data_dir.parent / 'ufc_fighters_engineered_latest.csv'
+    fighters_engineered_df.to_csv(latest_path, index=False)
+    print(f"Latest version also saved to: {latest_path}")
+    
+    # Save metadata about this scraping session
+    metadata = {
+        'scrape_date': SNAPSHOT_DATE,
+        'scrape_datetime': SNAPSHOT_DATETIME,
+        'total_fighters_scraped': len(all_fighter_details),
+        'total_fights_scraped': len(all_fight_histories),
+        'final_engineered_rows': fighters_engineered_df.shape[0],
+        'final_engineered_columns': fighters_engineered_df.shape[1],
+        'files_created': [
+            str(fighters_raw_path.name),
+            str(fights_raw_path.name),
+            str(engineered_path.name)
+        ]
+    }
+    
+    metadata_path = data_dir / f'scrape_metadata_{SNAPSHOT_DATE}.json'
+    import json
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
     print("\n--- PROCESS COMPLETE ---")
-    print(f"Final engineered dataset has {fighters_engineered_df.shape[0]} rows and {fighters_engineered_df.shape[1]} columns.")
-    print("You are now ready to start your modeling notebook.")
+    print(f"📊 SUMMARY STATISTICS:")
+    print(f"   Fighters scraped: {len(all_fighter_details)}")
+    print(f"   Fights scraped: {len(all_fight_histories)}")
+    print(f"   Final engineered dataset: {fighters_engineered_df.shape[0]} rows x {fighters_engineered_df.shape[1]} columns")
+    print(f"   Data saved to: {data_dir}")
+    print(f"   Metadata saved to: {metadata_path}")
+    print("\n🎯 You are now ready to start your modeling with the latest engineered dataset!")
 
 if __name__ == "__main__":
     main()
