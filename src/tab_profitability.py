@@ -415,7 +415,7 @@ class TABProfitabilityAnalyzer:
         
         # Get odds - either from live scraping or fixed data file
         if self.use_live_odds:
-        raw_odds = self.scrape_live_tab_odds()
+            raw_odds = self.scrape_live_tab_odds()
             odds_source = 'live'
         else:
             # Use fixed data file when live scraping is disabled
