@@ -3,7 +3,7 @@ import numpy as np
 import joblib
 import json
 from typing import Dict, List, Any, Tuple
-from IPython.display import display, HTML
+# Removed IPython dependency - using standard print output instead
 
 
 class UFCPredictor:
@@ -235,8 +235,12 @@ class UFCPredictor:
         
         results_df = pd.DataFrame(results_list, columns=['Matchup', 'Predicted Winner', 'Confidence'])
         
-        # Display as HTML for better formatting
-        display(HTML(results_df.to_html(index=False, justify='left', escape=False)))
+        # Display as formatted table
+        print("\n" + "="*60)
+        print("UFC FIGHT CARD PREDICTIONS")
+        print("="*60)
+        print(results_df.to_string(index=False))
+        print("="*60)
         
         return results_df
     

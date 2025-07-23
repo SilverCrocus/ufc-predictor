@@ -1,3 +1,26 @@
-requests
-beautifulsoup4
-pandas
+# Core web scraping and data processing
+requests>=2.32.0
+beautifulsoup4>=4.13.0
+pandas>=2.3.0
+aiohttp>=3.12.0
+aiofiles>=24.1.0
+
+# Machine learning and scientific computing
+numpy>=2.0.0
+scikit-learn>=1.6.0
+joblib>=1.5.0
+xgboost>=2.1.0
+lightgbm>=4.6.0
+
+# Data visualization
+matplotlib>=3.9.0
+seaborn>=0.13.0
+
+# Web automation and scraping
+selenium>=4.34.0
+
+# Configuration and utilities
+PyYAML>=6.0.0
+
+# Jupyter notebook support (optional)
+jupyter>=1.1.0
