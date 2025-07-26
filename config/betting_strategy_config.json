@@ -1,0 +1,132 @@
+{
+  "risk_tiers": {
+    "conservative": {
+      "kelly_multiplier": 0.25,
+      "max_single_bet_pct": 0.05,
+      "min_expected_value": 0.08,
+      "description": "Default for standard UFC winner bets"
+    },
+    "moderate": {
+      "kelly_multiplier": 0.5,
+      "max_single_bet_pct": 0.075,
+      "min_expected_value": 0.12,
+      "description": "High-confidence style matchup advantages"
+    },
+    "aggressive": {
+      "kelly_multiplier": 0.75,
+      "max_single_bet_pct": 0.10,
+      "min_expected_value": 0.15,
+      "description": "Severe market mispricing opportunities"
+    }
+  },
+  "portfolio_constraints": {
+    "max_total_exposure_pct": 0.25,
+    "max_correlated_exposure_pct": 0.15,
+    "min_bankroll_reserve_pct": 0.20,
+    "description": "Never bet more than 25% of bankroll per event"
+  },
+  "drawdown_protection": {
+    "10_pct_loss_reduction": 0.25,
+    "20_pct_loss_reduction": 0.50,
+    "30_pct_loss_pause": true,
+    "recovery_threshold_pct": 0.05,
+    "min_winning_streak_for_upgrade": 10
+  },
+  "bet_type_thresholds": {
+    "winner": {
+      "min_ev": 0.08,
+      "preferred_ev": 0.12,
+      "elite_ev": 0.20
+    },
+    "method": {
+      "min_ev": 0.15,
+      "ko_specialist_ev": 0.20,
+      "submission_ev": 0.18
+    },
+    "prop": {
+      "round_totals_ev": 0.12,
+      "performance_props_ev": 0.15
+    }
+  },
+  "portfolio_allocation": {
+    "single_bets_pct": 0.70,
+    "multi_bets_pct": 0.30,
+    "winner_bets_pct": 0.50,
+    "method_bets_pct": 0.15,
+    "prop_bets_pct": 0.05,
+    "two_leg_parlays_pct": 0.20,
+    "three_leg_parlays_pct": 0.08,
+    "four_plus_leg_parlays_pct": 0.02,
+    "max_legs_in_parlay": 4
+  },
+  "correlation_penalties": {
+    "same_event": 0.08,
+    "same_division": 0.05,
+    "main_vs_prelim": 0.03,
+    "max_total_penalty": 0.50
+  },
+  "market_timing": {
+    "opening_line_stake_pct": 0.60,
+    "closing_line_stake_pct": 0.40,
+    "public_fade_threshold": 0.70,
+    "underdog_opening_threshold": 150,
+    "underdog_prob_threshold": 0.40
+  },
+  "style_matchup_factors": {
+    "wrestler_vs_poor_tdd": {
+      "td_avg_threshold": 2.0,
+      "tdd_threshold": 0.60,
+      "confidence_boost": 1.25
+    },
+    "heavy_hands_vs_poor_chin": {
+      "ko_percentage_threshold": 0.60,
+      "recent_ko_losses_threshold": 2,
+      "confidence_boost": 1.25
+    },
+    "cardio_advantage": {
+      "third_round_performance_min": 0.70,
+      "opponent_third_round_max": 0.50,
+      "confidence_boost": 1.25
+    },
+    "southpaw_advantage": {
+      "southpaw_experience_threshold": 0.50,
+      "confidence_boost": 1.25
+    }
+  },
+  "weight_cutting_indicators": {
+    "red_flags": {
+      "missed_weight_penalty": -0.50,
+      "struggle_weigh_ins_penalty": -0.25,
+      "large_cut_penalty": -0.25,
+      "looks_depleted_penalty": -0.50
+    },
+    "green_flags": {
+      "professional_team_bonus": 0.10,
+      "easy_cut_history_bonus": 0.10
+    },
+    "large_cut_threshold_pct": 0.10
+  },
+  "performance_thresholds": {
+    "model_accuracy": {
+      "pause_threshold": 0.65,
+      "conservative_only_threshold": 0.70,
+      "full_strategy_threshold": 0.70,
+      "aggressive_threshold": 0.75
+    },
+    "target_roi_annual": 0.15,
+    "target_win_rate": 0.55,
+    "max_acceptable_drawdown": 0.25
+  },
+  "sportsbook_preferences": {
+    "primary": "TAB Australia",
+    "secondary": ["Sportsbet", "Ladbrokes", "Pointsbet", "Unibet"],
+    "arbitrage_min_profit": 0.02,
+    "max_arbitrage_allocation": 0.10
+  },
+  "automation_settings": {
+    "pre_event_analysis_hours": 72,
+    "closing_line_window_hours": 2,
+    "max_bets_per_card": 3,
+    "min_analysis_time_hours": 72
+  }
+}

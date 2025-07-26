@@ -10,6 +10,7 @@ from .feature_engineering import (
 from .model_training import UFCModelTrainer, train_complete_pipeline
 
 from .prediction import UFCPredictor, create_predictor
+from .ufc_fight_predictor import UFCFightPredictor, create_ufc_predictor
 
 __version__ = "1.0.0"
 __all__ = [
@@ -20,5 +21,7 @@ __all__ = [
     "UFCModelTrainer",
     "train_complete_pipeline",
     "UFCPredictor",
-    "create_predictor"
+    "create_predictor",
+    "UFCFightPredictor",
+    "create_ufc_predictor"
 ]

@@ -1,0 +1,470 @@
+{
+  "analysis_metadata": {
+    "date": "2025-07-27T01:15:58.308455",
+    "event": "UFC Fight Night - Whittaker vs de Ridder",
+    "analyst": "UFC Enhanced Card Analysis System",
+    "version": "2.0",
+    "bankroll": 21.38,
+    "config": {
+      "bankroll": 21.38,
+      "max_single_bet_pct": 0.05,
+      "max_multi_bet_pct": 0.02,
+      "min_ev_threshold": 0.05,
+      "correlation_penalty": 0.08,
+      "kelly_fraction": 0.25,
+      "polymarket_event_url": "https://polymarket.com/event/ufc-fight-night-whittaker-vs-de-ridder?tid=1753515605835"
+    }
+  },
+  "fight_predictions": [
+    {
+      "fighter_a": "Robert Whittaker",
+      "fighter_b": "Reinier de Ridder",
+      "fighter_a_prob": 0.47850000000000004,
+      "fighter_b_prob": 0.5215,
+      "predicted_winner": "Reinier de Ridder",
+      "confidence": 0.5215,
+      "method_prediction": "Submission",
+      "source": "UFC ML Model (Enhanced)"
+    },
+    {
+      "fighter_a": "Petr Yan",
+      "fighter_b": "Marcus McGhee",
+      "fighter_a_prob": 0.3886,
+      "fighter_b_prob": 0.6114,
+      "predicted_winner": "Marcus McGhee",
+      "confidence": 0.6114,
+      "method_prediction": "KO/TKO",
+      "source": "UFC ML Model (Enhanced)"
+    },
+    {
+      "fighter_a": "Shara Magomedov",
+      "fighter_b": "Marc-Andre Barriault",
+      "fighter_a_prob": 0.5658,
+      "fighter_b_prob": 0.43420000000000003,
+      "predicted_winner": "Shara Magomedov",
+      "confidence": 0.5658,
+      "method_prediction": "KO/TKO",
+      "source": "UFC ML Model (Enhanced)"
+    },
+    {
+      "fighter_a": "Asu Almabayev",
+      "fighter_b": "Jose Ochoa",
+      "fighter_a_prob": 0.6322,
+      "fighter_b_prob": 0.3678,
+      "predicted_winner": "Asu Almabayev",
+      "confidence": 0.6322,
+      "method_prediction": "Submission",
+      "source": "UFC ML Model (Enhanced)"
+    },
+    {
+      "fighter_a": "Nikita Krylov",
+      "fighter_b": "Bogdan Guskov",
+      "fighter_a_prob": 0.6724,
+      "fighter_b_prob": 0.3276,
+      "predicted_winner": "Nikita Krylov",
+      "confidence": 0.6724,
+      "method_prediction": "KO/TKO",
+      "source": "UFC ML Model (Enhanced)"
+    }
+  ],
+  "opportunities_analyzed": 10,
+  "positive_ev_opportunities": [
+    {
+      "fighter": "Marcus McGhee",
+      "model_probability": 0.6114,
+      "market_probability": 0.25,
+      "decimal_odds": 4.0,
+      "american_odds": 300,
+      "standard_ev": 1.4456000000000002,
+      "implied_ev": 1.4456000000000002,
+      "kelly_bet_size": 2.5755773333333334,
+      "bet_percentage": 0.12046666666666668,
+      "risk_level": "HIGH RISK",
+      "recommendation": "BET",
+      "source": "Polymarket",
+      "opponent": "Petr Yan",
+      "market_volume": 100000.0
+    },
+    {
+      "fighter": "Asu Almabayev",
+      "model_probability": 0.6322,
+      "market_probability": 0.52,
+      "decimal_odds": 1.923076923076923,
+      "american_odds": -108,
+      "standard_ev": 0.2157692307692307,
+      "implied_ev": 0.21576923076923069,
+      "kelly_bet_size": 1.2493937499999999,
+      "bet_percentage": 0.058437499999999996,
+      "risk_level": "HIGH RISK",
+      "recommendation": "BET",
+      "source": "Polymarket",
+      "opponent": "Jose Ochoa",
+      "market_volume": 100000.0
+    },
+    {
+      "fighter": "Reinier de Ridder",
+      "model_probability": 0.5215,
+      "market_probability": 0.43,
+      "decimal_odds": 2.3255813953488373,
+      "american_odds": 132,
+      "standard_ev": 0.2127906976744185,
+      "implied_ev": 0.21279069767441855,
+      "kelly_bet_size": 0.8580131578947362,
+      "bet_percentage": 0.04013157894736839,
+      "risk_level": "MEDIUM RISK",
+      "recommendation": "BET",
+      "source": "Polymarket",
+      "opponent": "Robert Whittaker",
+      "market_volume": 100000.0
+    },
+    {
+      "fighter": "Nikita Krylov",
+      "model_probability": 0.6724,
+      "market_probability": 0.64,
+      "decimal_odds": 1.5625,
+      "american_odds": -177,
+      "standard_ev": 0.05062499999999992,
+      "implied_ev": 0.050624999999999976,
+      "kelly_bet_size": 0.4810499999999992,
+      "bet_percentage": 0.022499999999999964,
+      "risk_level": "HIGH RISK",
+      "recommendation": "BET",
+      "source": "Polymarket",
+      "opponent": "Bogdan Guskov",
+      "market_volume": 100000.0
+    }
+  ],
+  "multi_bet_combinations": [
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Asu Almabayev",
+        "Reinier de Ridder"
+      ],
+      "num_legs": 3,
+      "combined_probability": 0.20157387222,
+      "combined_decimal_odds": 17.889087656529515,
+      "base_ev": 2.6059726694096597,
+      "correlation_adjustment": 0.76,
+      "adjusted_ev": 1.9805392287513415,
+      "same_event_pairs": 3,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "HIGH RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Asu Almabayev"
+      ],
+      "num_legs": 2,
+      "combined_probability": 0.38652708,
+      "combined_decimal_odds": 7.692307692307692,
+      "base_ev": 1.9732852307692306,
+      "correlation_adjustment": 0.92,
+      "adjusted_ev": 1.8154224123076923,
+      "same_event_pairs": 1,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "MEDIUM RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Reinier de Ridder"
+      ],
+      "num_legs": 2,
+      "combined_probability": 0.3188451,
+      "combined_decimal_odds": 9.30232558139535,
+      "base_ev": 1.9660009302325583,
+      "correlation_adjustment": 0.92,
+      "adjusted_ev": 1.8087208558139538,
+      "same_event_pairs": 1,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "MEDIUM RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Asu Almabayev",
+        "Nikita Krylov"
+      ],
+      "num_legs": 3,
+      "combined_probability": 0.259900808592,
+      "combined_decimal_odds": 12.019230769230768,
+      "base_ev": 2.123807795576923,
+      "correlation_adjustment": 0.76,
+      "adjusted_ev": 1.6140939246384614,
+      "same_event_pairs": 3,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "HIGH RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Reinier de Ridder",
+        "Nikita Krylov"
+      ],
+      "num_legs": 3,
+      "combined_probability": 0.21439144524,
+      "combined_decimal_odds": 14.534883720930234,
+      "base_ev": 2.116154727325582,
+      "correlation_adjustment": 0.76,
+      "adjusted_ev": 1.6082775927674422,
+      "same_event_pairs": 3,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "HIGH RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Asu Almabayev",
+        "Reinier de Ridder",
+        "Nikita Krylov"
+      ],
+      "num_legs": 4,
+      "combined_probability": 0.135538271680728,
+      "combined_decimal_odds": 27.95169946332737,
+      "base_ev": 2.7885250357985236,
+      "correlation_adjustment": 0.52,
+      "adjusted_ev": 1.4500330186152324,
+      "same_event_pairs": 6,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "VERY HIGH RISK"
+    },
+    {
+      "fighters": [
+        "Marcus McGhee",
+        "Nikita Krylov"
+      ],
+      "num_legs": 2,
+      "combined_probability": 0.41110536000000003,
+      "combined_decimal_odds": 6.25,
+      "base_ev": 1.5694085000000002,
+      "correlation_adjustment": 0.92,
+      "adjusted_ev": 1.4438558200000002,
+      "same_event_pairs": 1,
+      "recommended_bet_size": 0.34208,
+      "bet_percentage": 0.016,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "MEDIUM RISK"
+    },
+    {
+      "fighters": [
+        "Asu Almabayev",
+        "Reinier de Ridder"
+      ],
+      "num_legs": 2,
+      "combined_probability": 0.3296923,
+      "combined_decimal_odds": 4.472271914132379,
+      "base_ev": 0.4744736135957064,
+      "correlation_adjustment": 0.92,
+      "adjusted_ev": 0.4365157245080499,
+      "same_event_pairs": 1,
+      "recommended_bet_size": 0.25655999999999995,
+      "bet_percentage": 0.011999999999999999,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "MEDIUM RISK"
+    },
+    {
+      "fighters": [
+        "Asu Almabayev",
+        "Reinier de Ridder",
+        "Nikita Krylov"
+      ],
+      "num_legs": 3,
+      "combined_probability": 0.22168510251999998,
+      "combined_decimal_odds": 6.987924865831842,
+      "base_ev": 0.549118840283989,
+      "correlation_adjustment": 0.76,
+      "adjusted_ev": 0.4173303186158317,
+      "same_event_pairs": 3,
+      "recommended_bet_size": 0.25655999999999995,
+      "bet_percentage": 0.011999999999999999,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "HIGH RISK"
+    },
+    {
+      "fighters": [
+        "Asu Almabayev",
+        "Nikita Krylov"
+      ],
+      "num_legs": 2,
+      "combined_probability": 0.42509127999999996,
+      "combined_decimal_odds": 3.004807692307692,
+      "base_ev": 0.27731754807692277,
+      "correlation_adjustment": 0.92,
+      "adjusted_ev": 0.25513214423076896,
+      "same_event_pairs": 1,
+      "recommended_bet_size": 0.25655999999999995,
+      "bet_percentage": 0.011999999999999999,
+      "sources": [
+        "Polymarket"
+      ],
+      "risk_level": "MEDIUM RISK"
+    }
+  ],
+  "final_recommendations": {
+    "single_bets": [
+      {
+        "type": "SINGLE",
+        "fighter": "Marcus McGhee",
+        "decimal_odds": 4.0,
+        "american_odds": 300,
+        "bet_size": 2.138,
+        "expected_value": 1.4456000000000002,
+        "expected_return": 3.0906928000000002,
+        "source": "Polymarket",
+        "risk_level": "HIGH RISK"
+      },
+      {
+        "type": "SINGLE",
+        "fighter": "Asu Almabayev",
+        "decimal_odds": 1.923076923076923,
+        "american_odds": -108,
+        "bet_size": 1.2493937499999999,
+        "expected_value": 0.2157692307692307,
+        "expected_return": 0.2695807283653845,
+        "source": "Polymarket",
+        "risk_level": "HIGH RISK"
+      },
+      {
+        "type": "SINGLE",
+        "fighter": "Reinier de Ridder",
+        "decimal_odds": 2.3255813953488373,
+        "american_odds": 132,
+        "bet_size": 0.7830425000000001,
+        "expected_value": 0.2127906976744185,
+        "expected_return": 0.16662415988372087,
+        "source": "Polymarket",
+        "risk_level": "MEDIUM RISK"
+      },
+      {
+        "type": "SINGLE",
+        "fighter": "Nikita Krylov",
+        "decimal_odds": 1.5625,
+        "american_odds": -177,
+        "bet_size": 0.4698255,
+        "expected_value": 0.05062499999999992,
+        "expected_return": 0.023784915937499963,
+        "source": "Polymarket",
+        "risk_level": "HIGH RISK"
+      }
+    ],
+    "multi_bets": [
+      {
+        "type": "MULTI",
+        "fighters": [
+          "Marcus McGhee",
+          "Asu Almabayev",
+          "Reinier de Ridder"
+        ],
+        "num_legs": 3,
+        "combined_decimal_odds": 17.889087656529515,
+        "bet_size": 0.34208,
+        "expected_value": 1.9805392287513415,
+        "expected_return": 0.6775028593712589,
+        "win_probability": 0.20157387222,
+        "risk_level": "HIGH RISK"
+      },
+      {
+        "type": "MULTI",
+        "fighters": [
+          "Marcus McGhee",
+          "Asu Almabayev"
+        ],
+        "num_legs": 2,
+        "combined_decimal_odds": 7.692307692307692,
+        "bet_size": 0.21759494999999993,
+        "expected_value": 1.8154224123076923,
+        "expected_return": 0.39502674903497154,
+        "win_probability": 0.38652708,
+        "risk_level": "MEDIUM RISK"
+      }
+    ],
+    "total_exposure": 5.199936699999999,
+    "expected_return": 4.623212212592836,
+    "risk_assessment": "HIGH",
+    "portfolio_summary": {
+      "total_bets": 6,
+      "exposure_percentage": 0.243215,
+      "expected_roi": 0.21624004736168553,
+      "remaining_bankroll": 16.1800633
+    }
+  },
+  "polymarket_odds": [
+    {
+      "fighter_a": "Robert Whittaker",
+      "fighter_b": "Reinier de Ridder",
+      "fighter_a_probability": 0.59,
+      "fighter_b_probability": 0.43,
+      "fighter_a_american_odds": -143,
+      "fighter_b_american_odds": 132,
+      "market_volume": 100000.0
+    },
+    {
+      "fighter_a": "Petr Yan",
+      "fighter_b": "Marcus McGhee",
+      "fighter_a_probability": 0.76,
+      "fighter_b_probability": 0.25,
+      "fighter_a_american_odds": -316,
+      "fighter_b_american_odds": 300,
+      "market_volume": 100000.0
+    },
+    {
+      "fighter_a": "Shara Magomedov",
+      "fighter_b": "Marc-Andre Barriault",
+      "fighter_a_probability": 0.59,
+      "fighter_b_probability": 0.43,
+      "fighter_a_american_odds": -143,
+      "fighter_b_american_odds": 132,
+      "market_volume": 100000.0
+    },
+    {
+      "fighter_a": "Asu Almabayev",
+      "fighter_b": "Jose Ochoa",
+      "fighter_a_probability": 0.52,
+      "fighter_b_probability": 0.49,
+      "fighter_a_american_odds": -108,
+      "fighter_b_american_odds": 104,
+      "market_volume": 100000.0
+    },
+    {
+      "fighter_a": "Nikita Krylov",
+      "fighter_b": "Bogdan Guskov",
+      "fighter_a_probability": 0.64,
+      "fighter_b_probability": 0.38,
+      "fighter_a_american_odds": -177,
+      "fighter_b_american_odds": 163,
+      "market_volume": 100000.0
+    }
+  ]
+}

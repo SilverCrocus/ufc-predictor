@@ -1,0 +1,11 @@
+{
+  "event_id": "ufc_whittaker_de_ridder_20250726_182006",
+  "date": "2025-07-26T18:20:06.436915",
+  "predictions_made": 5,
+  "opportunities_found": 8,
+  "bets_recommended": 4,
+  "total_staked": 200.0,
+  "expected_return": 317.19967978621446,
+  "model_version": "UFC_Enhanced_v2.0",
+  "status": "PENDING_RESULTS"
+}
