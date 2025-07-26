@@ -321,16 +321,60 @@ class BetTracker:
         return self._save_bet_record(bet_record)
     
     def _save_bet_record(self, bet_record: BetRecord) -> str:
-        """Save bet record to CSV"""
+        """Save bet record to CSV with deduplication logic"""
         try:
-            # Create backup before making changes
-            self._create_backup()
-            
             # Load existing data
             df = pd.read_csv(self.csv_path)
             
-            # Convert bet record to dict and add to dataframe
+            # Define key fields that identify unique betting recommendations
+            key_fields = ['event', 'fighter', 'opponent', 'bet_type', 'odds_decimal', 
+                         'bet_size', 'expected_value']
+            
+            # Convert bet record to dict for comparison
             bet_dict = asdict(bet_record)
+            
+            # Check if this recommendation already exists (ignoring timestamps and bet_id)
+            if not df.empty:
+                # Create comparison mask for key fields
+                comparison_data = {k: bet_dict[k] for k in key_fields if k in bet_dict}
+                existing_match = True
+                
+                for field, value in comparison_data.items():
+                    if field in df.columns:
+                        # Use approximate comparison for floats to handle minor precision differences
+                        if field in ['odds_decimal', 'bet_size', 'expected_value']:
+                            existing_match &= abs(df[field] - value).min() < 0.01
+                        else:
+                            existing_match &= (df[field] == value).any()
+                    else:
+                        existing_match = False
+                        break
+                
+                if existing_match and len(df) > 0:
+                    # Find the actual matching row
+                    for idx, row in df.iterrows():
+                        match = True
+                        for field, value in comparison_data.items():
+                            if field in ['odds_decimal', 'bet_size', 'expected_value']:
+                                if abs(row[field] - value) >= 0.01:
+                                    match = False
+                                    break
+                            else:
+                                if row[field] != value:
+                                    match = False
+                                    break
+                        
+                        if match:
+                            existing_bet_id = row['bet_id']
+                            print(f"⚠️ Duplicate recommendation detected - using existing bet ID: {existing_bet_id}")
+                            print(f"   Fighter: {bet_record.fighter} vs {bet_record.opponent}")
+                            print(f"   Amount: ${bet_record.bet_size:.2f} at {bet_record.odds_decimal} odds")
+                            return existing_bet_id
+            
+            # Only create backup if we're actually adding a new record
+            self._create_backup()
+            
+            # Add new record
             new_row = pd.DataFrame([bet_dict])
             df = pd.concat([df, new_row], ignore_index=True)
             
@@ -714,6 +758,56 @@ class BetTracker:
             
         except Exception as e:
             return {'error': str(e), 'data_quality': 'ERROR'}
+    
+    def remove_duplicate_recommendations(self) -> int:
+        """Remove duplicate betting recommendations from CSV based on content"""
+        try:
+            # Load existing data
+            df = pd.read_csv(self.csv_path)
+            original_count = len(df)
+            
+            if original_count == 0:
+                print("📊 CSV file is empty - no duplicates to remove")
+                return 0
+            
+            # Define key fields that identify unique betting recommendations
+            key_fields = ['event', 'fighter', 'opponent', 'bet_type', 'odds_decimal', 
+                         'bet_size', 'expected_value']
+            
+            # Check which key fields actually exist in the CSV
+            existing_key_fields = [field for field in key_fields if field in df.columns]
+            
+            if not existing_key_fields:
+                print("⚠️ Required fields not found in CSV for deduplication")
+                return 0
+            
+            print(f"🔍 Checking for duplicates using fields: {', '.join(existing_key_fields)}")
+            
+            # Keep first occurrence of each unique recommendation
+            # Use subset of existing key fields only
+            df_cleaned = df.drop_duplicates(subset=existing_key_fields, keep='first')
+            
+            duplicates_removed = original_count - len(df_cleaned)
+            
+            if duplicates_removed > 0:
+                # Create backup before cleaning
+                self._create_backup()
+                
+                # Save cleaned data
+                df_cleaned.to_csv(self.csv_path, index=False)
+                
+                print(f"✅ Removed {duplicates_removed} duplicate recommendations")
+                print(f"📊 Original records: {original_count}")
+                print(f"📊 Cleaned records: {len(df_cleaned)}")
+                print(f"📊 Duplication rate: {duplicates_removed/original_count:.1%}")
+            else:
+                print("✅ No duplicates found - CSV file is already clean")
+            
+            return duplicates_removed
+            
+        except Exception as e:
+            print(f"❌ Error removing duplicates: {e}")
+            return 0
 
 # Quick utility functions for notebook integration
 
