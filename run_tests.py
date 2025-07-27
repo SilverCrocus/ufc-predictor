@@ -18,6 +18,8 @@ Usage:
     python run_tests.py --unit             # Run only unit tests
     python run_tests.py --integration      # Run only integration tests
     python run_tests.py --performance      # Run only performance tests
+    python run_tests.py --agent            # Run only agent tests
+    python run_tests.py --phase2a          # Run only Phase 2A tests
     python run_tests.py --fast             # Skip slow tests
     python run_tests.py --coverage         # Generate coverage report
     python run_tests.py --benchmark        # Run performance benchmarks
@@ -42,7 +44,7 @@ class UFCTestRunner:
         
     def run_pytest(self, args: List[str]) -> tuple:
         """Run pytest with given arguments and return results"""
-        cmd = ["python", "-m", "pytest"] + args
+        cmd = ["python3", "-m", "pytest"] + args
         
         print(f"🚀 Running: {' '.join(cmd)}")
         print("=" * 60)
@@ -103,6 +105,46 @@ class UFCTestRunner:
         
         return self.run_pytest(args)
     
+    def run_agent_tests(self, fast: bool = False) -> tuple:
+        """Run Enhanced ML Pipeline agent tests"""
+        print("🤖 RUNNING AGENT TESTS")
+        print("-" * 30)
+        
+        agent_tests_dir = self.tests_dir / "test_agent"
+        
+        if not agent_tests_dir.exists():
+            print("⚠️  Agent tests directory not found, skipping...")
+            return 0, 0
+        
+        args = [
+            str(agent_tests_dir),
+            "-v", 
+            "-m", "agent" if not fast else "agent and not slow",
+            "--tb=short"
+        ]
+        
+        if fast:
+            args.extend(["-x"])  # Stop on first failure
+        
+        return self.run_pytest(args)
+    
+    def run_phase2a_tests(self, fast: bool = False) -> tuple:
+        """Run Phase 2A hybrid system tests"""
+        print("🔀 RUNNING PHASE 2A TESTS")
+        print("-" * 30)
+        
+        args = [
+            str(self.tests_dir),
+            "-v",
+            "-m", "phase2a" if not fast else "phase2a and not slow",
+            "--tb=short"
+        ]
+        
+        if fast:
+            args.extend(["-x"])
+        
+        return self.run_pytest(args)
+    
     def run_all_tests(self, fast: bool = False) -> dict:
         """Run all test categories"""
         print("🎯 RUNNING COMPLETE TEST SUITE")
@@ -133,8 +175,32 @@ class UFCTestRunner:
         print(f"\n✅ Integration tests completed in {exec_time:.2f}s")
         print("=" * 60)
         
+        # Run agent tests
+        returncode, exec_time = self.run_agent_tests(fast)
+        results['agent_tests'] = {
+            'success': returncode == 0,
+            'execution_time': exec_time
+        }
+        total_time += exec_time
+        
+        print(f"\n✅ Agent tests completed in {exec_time:.2f}s")
+        print("=" * 60)
+        
+        # Run Phase 2A tests
+        returncode, exec_time = self.run_phase2a_tests(fast)
+        results['phase2a_tests'] = {
+            'success': returncode == 0,
+            'execution_time': exec_time
+        }
+        total_time += exec_time
+        
+        print(f"\n✅ Phase 2A tests completed in {exec_time:.2f}s")
+        print("=" * 60)
+        
         # Only run performance tests if others pass and not in fast mode
-        if not fast and results['unit_tests']['success'] and results['integration_tests']['success']:
+        if (not fast and results['unit_tests']['success'] and 
+            results['integration_tests']['success'] and results['agent_tests']['success'] and 
+            results['phase2a_tests']['success']):
             returncode, exec_time = self.run_performance_tests()
             results['performance_tests'] = {
                 'success': returncode == 0,
@@ -306,6 +372,8 @@ def main():
     # Test selection arguments
     parser.add_argument("--unit", action="store_true", help="Run only unit tests")
     parser.add_argument("--integration", action="store_true", help="Run only integration tests")
+    parser.add_argument("--agent", action="store_true", help="Run only agent tests")
+    parser.add_argument("--phase2a", action="store_true", help="Run only Phase 2A tests")
     parser.add_argument("--performance", action="store_true", help="Run only performance tests")
     parser.add_argument("--all", action="store_true", help="Run all tests (default)")
     
@@ -330,7 +398,7 @@ def main():
         return
     
     # Determine which tests to run
-    run_specific = args.unit or args.integration or args.performance
+    run_specific = args.unit or args.integration or args.agent or args.phase2a or args.performance
     
     try:
         if args.benchmark:
@@ -346,6 +414,14 @@ def main():
         
         elif args.integration:
             returncode, _ = runner.run_integration_tests(args.fast)
+            sys.exit(returncode)
+        
+        elif args.agent:
+            returncode, _ = runner.run_agent_tests(args.fast)
+            sys.exit(returncode)
+        
+        elif args.phase2a:
+            returncode, _ = runner.run_phase2a_tests(args.fast)
             sys.exit(returncode)
         
         elif args.performance:

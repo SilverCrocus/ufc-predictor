@@ -19,6 +19,9 @@ FIGHT_DATASET_WITH_DIFFS = MODEL_DIR / "ufc_fight_dataset_with_diffs.csv"
 # Model file paths
 RF_MODEL_PATH = MODEL_DIR / "ufc_random_forest_model.joblib"
 RF_TUNED_MODEL_PATH = MODEL_DIR / "ufc_random_forest_model_tuned.joblib"
+XGBOOST_MODEL_PATH = MODEL_DIR / "ufc_xgboost_model.joblib"
+XGBOOST_TUNED_MODEL_PATH = MODEL_DIR / "ufc_xgboost_model_tuned.joblib"
+ENSEMBLE_MODEL_DIR = MODEL_DIR / "ensemble_models"
 MODEL_COLUMNS_PATH = MODEL_DIR / "model_training_columns.json"
 
 # Feature engineering settings
@@ -62,6 +65,61 @@ LR_PARAMS = {
     'max_iter': 1000
 }
 
+# XGBoost default parameters optimized for UFC prediction
+XGBOOST_DEFAULT_PARAMS = {
+    'objective': 'binary:logistic',
+    'eval_metric': 'logloss',
+    'random_state': RANDOM_STATE,
+    'n_jobs': -1,
+    'tree_method': 'hist',  # Faster training
+    'verbose': False,
+    'n_estimators': 300,
+    'max_depth': 6,
+    'learning_rate': 0.05,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'min_child_weight': 3,
+    'gamma': 0.1,
+    'reg_alpha': 0.01,
+    'reg_lambda': 1.5
+}
+
+# XGBoost hyperparameter tuning grid
+XGBOOST_PARAM_GRID = {
+    'n_estimators': [200, 300, 400, 500],
+    'max_depth': [4, 6, 8, 10],
+    'learning_rate': [0.01, 0.05, 0.1, 0.15],
+    'subsample': [0.8, 0.9, 1.0],
+    'colsample_bytree': [0.8, 0.9, 1.0],
+    'min_child_weight': [1, 3, 5],
+    'gamma': [0, 0.1, 0.2],
+    'reg_alpha': [0, 0.01, 0.1],
+    'reg_lambda': [1, 1.5, 2]
+}
+
+# Ensemble configuration for Phase 2A Enhanced ML Pipeline
+ENSEMBLE_CONFIG = {
+    'weights': {
+        'random_forest': 0.40,
+        'xgboost': 0.35,
+        'neural_network': 0.25
+    },
+    'confidence_threshold': 0.6,
+    'bootstrap_samples': 100,
+    'enable_data_quality_scoring': True,
+    'enable_confidence_intervals': True,
+    'confidence_level': 0.95,
+    'min_prediction_confidence': 0.5,
+    'max_memory_mb': 4096,  # Memory limit in MB
+    'max_failure_rate': 0.05,  # Maximum allowed failure rate (5%)
+    'enable_strict_validation': True,  # Enable strict input validation
+    'performance_targets': {
+        'single_prediction_max_ms': 2000,  # Max 2 seconds per prediction
+        'bootstrap_max_ms': 10000,  # Max 10 seconds for confidence intervals
+        'memory_warning_threshold': 0.9  # Warn at 90% memory usage
+    }
+}
+
 # Columns to drop for modeling
 COLUMNS_TO_DROP = [
     'Outcome', 'Fighter', 'Opponent', 'Event', 'Method', 'Time',
@@ -84,3 +142,29 @@ WEBSCRAPER_CONFIG = {
 # Display settings
 DISPLAY_PRECISION = 2  # decimal places for percentages
 TOP_FEATURES_TO_SHOW = 15
+
+# Quota Management Settings (Phase 2A)
+QUOTA_CONFIG = {
+    'config_path': PROJECT_ROOT / 'config' / 'quota_config.json',
+    'default_daily_limit': 500,
+    'default_priority': 'MEDIUM',
+    'enable_fallback': True,
+    'cost_threshold_usd': 50.0
+}
+
+# Enhanced Odds Service Settings
+ENHANCED_ODDS_CONFIG = {
+    'storage_base_path': PROJECT_ROOT / 'odds',
+    'enable_tab_fallback': True,
+    'enable_cache_fallback': True,
+    'confidence_threshold': 0.7,
+    'max_cache_age_hours': 24
+}
+
+# Data Source Priorities (for hybrid system)
+DATA_SOURCE_PRIORITIES = {
+    'the_odds_api': 1,      # Highest priority
+    'tab_scraper': 2,       # Fallback option
+    'cached_data': 3,       # Last resort
+    'manual_entry': 4       # Manual override
+}
