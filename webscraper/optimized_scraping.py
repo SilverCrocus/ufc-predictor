@@ -88,7 +88,7 @@ class OptimizedUFCStatsScraper:
         self.config = config or CONFIG
         self.session: Optional[aiohttp.ClientSession] = None
         self.semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENT_FIGHTERS)
-        self.rate_limiter = asyncio.Semaphore(int(self.config.REQUESTS_PER_SECOND))
+        # rate_limiter removed - now using delay-based rate limiting to prevent deadlocks
         
         # Statistics tracking
         self.stats = {
@@ -153,34 +153,33 @@ class OptimizedUFCStatsScraper:
         logger.info("🧹 Resources cleaned up")
 
     async def rate_limited_request(self, url: str, delay_override: float = None) -> Optional[str]:
-        """Make rate-limited HTTP request with retry logic"""
-        async with self.rate_limiter:  # Rate limiting
-            async with self.semaphore:  # Concurrency limiting
-                
-                for attempt in range(self.config.MAX_RETRIES):
-                    try:
-                        self.stats['requests_made'] += 1
+        """Make rate-limited HTTP request with retry logic - FIXED: removed nested semaphores"""
+        # Use only one semaphore to prevent deadlocks
+        async with self.semaphore:  # Combined concurrency and rate limiting
+            
+            for attempt in range(self.config.MAX_RETRIES):
+                try:
+                    self.stats['requests_made'] += 1
+                    
+                    # Apply rate limiting delay BEFORE making request
+                    delay = delay_override or self.config.FIGHTER_DELAY
+                    await asyncio.sleep(delay + random.uniform(0.1, 0.3))
+                    
+                    async with self.session.get(url) as response:
+                        if response.status == 200:
+                            content = await response.text()
+                            return content
+                            
+                        elif response.status == 429:  # Rate limited
+                            wait_time = 2 ** attempt * self.config.RETRY_DELAY
+                            logger.warning(f"Rate limited, waiting {wait_time}s")
+                            await asyncio.sleep(wait_time)
+                            continue
                         
-                        async with self.session.get(url) as response:
-                            if response.status == 200:
-                                content = await response.text()
+                        else:
+                            logger.warning(f"HTTP {response.status} for {url}")
                                 
-                                # Respectful delay
-                                delay = delay_override or self.config.FIGHTER_DELAY
-                                await asyncio.sleep(delay + random.uniform(0.1, 0.3))
-                                
-                                return content
-                            
-                            elif response.status == 429:  # Rate limited
-                                wait_time = 2 ** attempt * self.config.RETRY_DELAY
-                                logger.warning(f"Rate limited, waiting {wait_time}s")
-                                await asyncio.sleep(wait_time)
-                                continue
-                            
-                            else:
-                                logger.warning(f"HTTP {response.status} for {url}")
-                                
-                    except Exception as e:
+                except Exception as e:
                         self.stats['errors_encountered'] += 1
                         logger.error(f"Request failed (attempt {attempt+1}): {e}")
                         
@@ -221,17 +220,27 @@ class OptimizedUFCStatsScraper:
             async with letter_semaphore:
                 return await scrape_letter(letter)
         
-        # Execute all letters concurrently
-        tasks = [process_letter(letter) for letter in letters]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Collect all fighter URLs
+        # Execute letters in batches to prevent overwhelming the system
+        batch_size = 6  # Process 6 letters at a time to prevent deadlocks
         all_urls = []
-        for result in results:
-            if isinstance(result, list):
-                all_urls.extend(result)
-            elif isinstance(result, Exception):
-                logger.error(f"Letter scraping error: {result}")
+        
+        for i in range(0, len(letters), batch_size):
+            batch = letters[i:i + batch_size]
+            logger.info(f"🔤 Processing letters batch: {'-'.join(batch)}")
+            
+            tasks = [process_letter(letter) for letter in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Collect URLs from this batch
+            for result in results:
+                if isinstance(result, list):
+                    all_urls.extend(result)
+                elif isinstance(result, Exception):
+                    logger.error(f"Letter scraping error: {result}")
+            
+            # Brief pause between batches
+            if i + batch_size < len(letters):
+                await asyncio.sleep(1.0)
         
         logger.info(f"✅ Discovered {len(all_urls)} fighter URLs total")
         return all_urls

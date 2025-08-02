@@ -169,11 +169,10 @@ class UFCModelTrainer:
         try:
             model = xgb.XGBClassifier(**default_params)
             
-            # Train with comprehensive error handling
+            # Train with comprehensive error handling (early stopping removed for XGBoost 2.1+ compatibility)
             model.fit(
                 X_train, y_train,
                 eval_set=eval_set,
-                early_stopping_rounds=20,
                 verbose=False
             )
             
