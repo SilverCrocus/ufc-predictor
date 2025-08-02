@@ -30,9 +30,9 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.fast_odds_fetcher import FastOddsFetcher, FastFightOdds
-from src.fast_tab_profitability import FastTABProfitabilityAnalyzer
-from src.optimized_feature_engineering import (
+from ufc_predictor.betting.fast_odds_fetcher import FastOddsFetcher, FastFightOdds
+from ufc_predictor.betting.fast_tab_profitability import FastTABProfitabilityAnalyzer
+from ufc_predictor.features.optimized_feature_engineering import (
     engineer_features_final_optimized,
     create_differential_features_optimized,
     merge_fight_data_optimized
@@ -210,7 +210,7 @@ class TestFastProfitabilityAnalysis:
         analyzer = FastTABProfitabilityAnalyzer(bankroll=1000)
         
         # Create mock profitable opportunities
-        from src.fast_tab_profitability import FastTABOpportunity
+        from ufc_predictor.betting.fast_tab_profitability import FastTABOpportunity
         opportunities = [
             FastTABOpportunity(
                 fighter="Jon Jones",

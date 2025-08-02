@@ -20,7 +20,7 @@ from pathlib import Path
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 
-from src.confidence_intervals import (
+from ufc_predictor.utils.confidence_intervals import (
     BootstrapConfidenceCalculator, 
     ConfidenceIntervalResult,
     create_ufc_confidence_calculator,

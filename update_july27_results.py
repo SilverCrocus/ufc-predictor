@@ -7,7 +7,7 @@ Run this script after the fights to update your betting results.
 Simply edit the results dictionary below and run the script.
 """
 
-from src.bet_tracking import BetTracker
+from ufc_predictor.betting.bet_tracking import BetTracker
 
 def main():
     print("🥊 UFC Fight Night Results Updater")

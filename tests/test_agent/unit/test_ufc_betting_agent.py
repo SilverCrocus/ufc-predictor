@@ -26,7 +26,7 @@ class TestUFCBettingAgentInitialization:
     
     def test_agent_initialization_success(self, mock_agent_config):
         """Test successful agent initialization with proper configuration"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -37,14 +37,14 @@ class TestUFCBettingAgentInitialization:
     
     def test_agent_initialization_with_invalid_config(self):
         """Test agent initialization handles invalid configuration"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         with pytest.raises((ValueError, AttributeError)):
             UFCBettingAgent(None)
     
     def test_hybrid_odds_service_initialization(self, mock_agent_config):
         """Test Phase 2A hybrid odds service initialization"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -55,7 +55,7 @@ class TestUFCBettingAgentInitialization:
     
     def test_betting_system_initialization_success(self, mock_agent_config):
         """Test successful betting system initialization"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -94,7 +94,7 @@ class TestUFCBettingAgentInitialization:
     
     def test_betting_system_initialization_failure(self, mock_agent_config):
         """Test betting system initialization handles failures gracefully"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -114,7 +114,7 @@ class TestUFCBettingAgentAnalysis:
     
     async def test_analyze_event_complete_workflow_phase2a(self, mock_agent_config, async_test_runner):
         """Test complete event analysis workflow with Phase 2A hybrid service"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -176,7 +176,7 @@ class TestUFCBettingAgentAnalysis:
     
     async def test_analyze_event_quota_exhaustion_fallback(self, mock_agent_config):
         """Test analysis handles API quota exhaustion with TAB fallback"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -215,7 +215,7 @@ class TestUFCBettingAgentAnalysis:
     
     async def test_analyze_event_priority_determination(self, mock_agent_config):
         """Test event priority determination for quota allocation"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -242,7 +242,7 @@ class TestUFCBettingAgentErrorHandling:
     
     async def test_analyze_event_without_betting_system(self, mock_agent_config):
         """Test analysis fails appropriately without betting system"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         
@@ -251,7 +251,7 @@ class TestUFCBettingAgentErrorHandling:
     
     async def test_analyze_event_odds_failure_recovery(self, mock_agent_config):
         """Test analysis handles odds fetching failure gracefully"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -273,7 +273,7 @@ class TestUFCBettingAgentErrorHandling:
     
     async def test_analyze_event_prediction_failure_handling(self, mock_agent_config):
         """Test analysis handles prediction service failures"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -301,7 +301,7 @@ class TestUFCBettingAgentPhase2AIntegration:
     
     async def test_system_status_includes_quota_info(self, mock_agent_config):
         """Test system status includes Phase 2A quota information"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -328,7 +328,7 @@ class TestUFCBettingAgentPhase2AIntegration:
     
     async def test_health_check_includes_hybrid_components(self, mock_agent_config):
         """Test health check includes Phase 2A hybrid service components"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -365,7 +365,7 @@ class TestUFCBettingAgentPerformance:
     
     async def test_analysis_performance_target(self, mock_agent_config, performance_benchmark):
         """Test that event analysis meets performance targets"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         agent.betting_system = AgentTestHelpers.create_mock_betting_system()
@@ -406,7 +406,7 @@ class TestUFCBettingAgentDataValidation:
     
     def test_prediction_result_validation(self, mock_agent_config):
         """Test that prediction results meet quality standards"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         agent = UFCBettingAgent(mock_agent_config)
         

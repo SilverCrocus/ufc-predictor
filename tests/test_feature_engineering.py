@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.feature_engineering import (
+from ufc_predictor.data.feature_engineering import (
     parse_height_to_inches,
     parse_weight_to_lbs,
     parse_reach_to_inches,
@@ -37,7 +37,7 @@ from src.feature_engineering import (
     create_differential_features
 )
 
-from src.optimized_feature_engineering import (
+from ufc_predictor.features.optimized_feature_engineering import (
     parse_height_vectorized,
     parse_weight_vectorized,
     parse_reach_vectorized,

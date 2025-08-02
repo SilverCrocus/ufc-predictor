@@ -22,14 +22,14 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 import logging
 
 # Existing imports
-from src.prediction import predict_fight_symmetrical
-from src.agent.services.prediction_service import UFCPredictionService, PredictionResult
-from src.model_training import UFCModelTrainer
+from ufc_predictor.core.prediction import predict_fight_symmetrical
+from ufc_predictor.agent.services.prediction_service import UFCPredictionService, PredictionResult
+from ufc_predictor.models.model_training import UFCModelTrainer
 
 # Enhanced imports (new components)
 try:
-    from src.advanced_ensemble_methods import AdvancedEnsembleSystem
-    from src.advanced_feature_engineering import AdvancedFeatureEngineer
+    from ufc_predictor.advanced_ensemble_methods import AdvancedEnsembleSystem
+    from ufc_predictor.advanced_feature_engineering import AdvancedFeatureEngineer
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError:
     ENHANCED_FEATURES_AVAILABLE = False
@@ -272,7 +272,7 @@ class EnhancedPredictionService(UFCPredictionService):
                               fight_contexts: Dict[str, Dict]) -> 'PredictionAnalysis':
         """Enhanced event prediction using ensemble methods"""
         
-        from src.agent.services.prediction_service import PredictionAnalysis
+        from ufc_predictor.agent.services.prediction_service import PredictionAnalysis
         
         analysis = PredictionAnalysis(event_name)
         

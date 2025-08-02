@@ -17,7 +17,7 @@ project_path = '/Users/diyagamah/Documents/ufc-predictor'
 if project_path not in sys.path:
     sys.path.append(project_path)
 
-from src.bet_tracking import BetTracker
+from ufc_predictor.betting.bet_tracking import BetTracker
 
 def main():
     """Clean up duplicate betting recommendations"""

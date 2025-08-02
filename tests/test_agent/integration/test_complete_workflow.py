@@ -24,7 +24,7 @@ class TestCompleteAgentWorkflow:
     
     async def test_end_to_end_analysis_workflow_phase2a(self, mock_agent_config, async_test_runner):
         """Test complete end-to-end analysis workflow with Phase 2A hybrid system"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         # Mock all external dependencies for integration test
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models') as mock_models, \
@@ -140,8 +140,8 @@ class TestCompleteAgentWorkflow:
     
     async def test_multi_event_monitoring_workflow(self, mock_agent_config):
         """Test monitoring workflow for multiple events"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
-        from src.agent.config.agent_config import EventConfig
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.config.agent_config import EventConfig
         
         # Setup agent with mocked dependencies
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models'), \
@@ -226,7 +226,7 @@ class TestCompleteAgentWorkflow:
     
     async def test_error_recovery_workflow(self, mock_agent_config):
         """Test error recovery and graceful degradation"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models'), \
              patch('pandas.read_csv'), \
@@ -287,7 +287,7 @@ class TestPhase2AIntegrationWorkflow:
     
     async def test_quota_aware_event_prioritization(self, mock_agent_config):
         """Test that Phase 2A system properly prioritizes events based on quota"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models'), \
              patch('pandas.read_csv'), \
@@ -354,7 +354,7 @@ class TestPhase2AIntegrationWorkflow:
     
     async def test_hybrid_data_source_confidence_integration(self, mock_agent_config):
         """Test integration of data source confidence scoring"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models'), \
              patch('pandas.read_csv'), \
@@ -443,7 +443,7 @@ class TestIntegrationPerformance:
     
     async def test_concurrent_event_analysis_performance(self, mock_agent_config):
         """Test performance with concurrent event analysis"""
-        from src.agent.ufc_betting_agent import UFCBettingAgent
+        from ufc_predictor.agent.ufc_betting_agent import UFCBettingAgent
         
         with patch('src.agent.ufc_betting_agent.get_latest_trained_models'), \
              patch('pandas.read_csv'), \

@@ -18,7 +18,7 @@ import re
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 
-from src.agent.services.enhanced_prediction_service import (
+from ufc_predictor.agent.services.enhanced_prediction_service import (
     EnhancedUFCPredictionService,
     EnhancedPredictionResult,
     EnhancedPredictionAnalysis
@@ -368,7 +368,7 @@ class TestEnhancedUFCPredictionService:
     def test_predict_event_with_ensemble(self):
         """Test event prediction using ensemble"""
         # Setup mock ensemble prediction
-        from src.ensemble_manager import EnsemblePrediction
+        from ufc_predictor.ensemble_manager import EnsemblePrediction
         mock_ensemble_pred = Mock()
         mock_ensemble_pred.fighter_a = "Jon Jones"
         mock_ensemble_pred.fighter_b = "Daniel Cormier"
@@ -424,7 +424,7 @@ class TestEnhancedUFCPredictionService:
     def test_convert_to_enhanced_analysis(self):
         """Test conversion from base analysis to enhanced analysis"""
         # Mock base analysis
-        from src.agent.services.prediction_service import PredictionAnalysis, PredictionResult
+        from ufc_predictor.agent.services.prediction_service import PredictionAnalysis, PredictionResult
         
         base_analysis = PredictionAnalysis("UFC 300")
         base_result = PredictionResult("fight_1", "Jon Jones", "Daniel Cormier")

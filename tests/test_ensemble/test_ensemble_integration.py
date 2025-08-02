@@ -24,13 +24,13 @@ import sys
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 
-from src.model_training import UFCModelTrainer
-from src.confidence_intervals import BootstrapConfidenceCalculator
-from src.production_ensemble_manager import (
+from ufc_predictor.models.model_training import UFCModelTrainer
+from ufc_predictor.utils.confidence_intervals import BootstrapConfidenceCalculator
+from ufc_predictor.models.production_ensemble_manager import (
     ProductionEnsembleManager,
     create_production_ensemble_config
 )
-from src.agent.services.enhanced_prediction_service import EnhancedUFCPredictionService
+from ufc_predictor.agent.services.enhanced_prediction_service import EnhancedUFCPredictionService
 
 
 class TestCompleteEnsembleIntegration:

@@ -21,7 +21,7 @@ import sys
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 
-from src.production_ensemble_manager import (
+from ufc_predictor.models.production_ensemble_manager import (
     ProductionEnsembleManager,
     EnsembleConfig,
     PredictionResult,
