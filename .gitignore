@@ -1,13 +1,106 @@
-# Ignore Python virtual environments
-.venv/
-venv/
-env/
-
-# Ignore Python cache files
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-data/
-*.csv
-*.joblib
+# uv
+uv.lock
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Data files
+data/scrape_*/
+data/*.csv
+!data/samples/*.csv
+*.log
+logs/
+
+# Model files
+model/training_*/
+model/*.joblib
+model/*.pkl
+model/*.h5
+model/*.pt
+model/*.pth
+
+# Cache
+cache/
+.cache/
+*.cache
+
+# Backups
+backups/
+betting_backups/
+analysis_exports/
+*_backup_*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Documentation
+docs/_build/
+site/
+
+# Secrets
+.env
+.env.local
+*.key
+*.pem
+config/secrets.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Betting records
+betting_records.csv
+betting_records_*.csv
+
+# Odds data
+model/odds/
+odds_*.csv

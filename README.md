@@ -1,212 +1,307 @@
 # UFC Predictor 🥊
 
-A comprehensive machine learning system for predicting UFC fight outcomes and betting profitability analysis. Uses advanced feature engineering, ensemble methods, and real-time odds scraping.
+A comprehensive machine learning system for predicting UFC fight outcomes and betting profitability analysis. Features unified architecture with clean interfaces for prediction, betting analysis, and odds scraping.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.9+
-- [UV](https://docs.astral.sh/uv/) package manager (recommended) or pip
+- [uv](https://docs.astral.sh/uv/) package manager
 
-### 1. Setup Environment
+### Installation
 ```bash
-# Clone and enter directory
+# Install uv if needed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone repository
+git clone https://github.com/yourusername/ufc-predictor.git
 cd ufc-predictor
 
-# Install dependencies (UV recommended)
+# Install dependencies with uv
 uv sync
-# OR with pip:
-# pip install -r requirements.txt
+
+# Install dev dependencies (optional - for testing/linting)
+uv sync --dev
 ```
 
-### 2. Complete Workflow (Start Here)
-```bash
-# Step 1: Scrape fresh UFC data (5-35 minutes)
-uv run python3 webscraper/optimized_scraping.py
+## 📋 Complete Command Reference (with uv)
 
-# Step 2: Train ML models with fresh data (30-60 minutes)
-uv run python3 main.py --mode pipeline --tune
+### Core Commands
+
+#### 🥊 Fight Predictions
+```bash
+# Single fight prediction
+uv run python main.py predict --fighter1 "Jon Jones" --fighter2 "Stipe Miocic"
+
+# Multiple fights (full card)
+uv run python main.py card --fights "Holloway vs Topuria" "Pantoja vs Kara-France"
+
+# Show model information
+uv run python main.py info
+```
+
+#### 💰 Betting Analysis
+```bash
+# Analyze betting opportunities with live odds
+uv run python main.py betting --bankroll 1000 --source tab
+
+# Use cached odds for faster analysis
+uv run python main.py betting --bankroll 500 --source cached
+
+# Export analysis to file
+uv run python main.py betting --bankroll 1000 --export analysis.json
+```
+
+#### 🔄 Model Training Pipeline
+```bash
+# Step 1: Scrape fresh UFC data (5-10 minutes with optimized scraper)
+uv run python webscraper/optimized_scraping.py
+
+# Step 2: Full pipeline - process data + train models (30-60 minutes)
+uv run python scripts/main.py --mode pipeline --tune
+
+# Alternative: Train only (if data already processed)
+uv run python scripts/main.py --mode train --tune
 
 # Step 3: View training results
-uv run python3 main.py --mode results
-
-# Step 4: Make predictions
-uv run python3 main.py --mode predict --fighter1 "Jon Jones" --fighter2 "Stipe Miocic"
+uv run python scripts/main.py --mode results
 ```
 
-## 📊 Main Features
+### Profitability Analysis Scripts
 
-### 🤖 Machine Learning
-- **Winner Prediction**: Random Forest with hyperparameter tuning (72%+ accuracy)
-- **Method Prediction**: Multi-class classification (KO/TKO, Decision, Submission)
-- **Advanced Features**: 70+ differential features comparing fighters
-- **Model Versioning**: Timestamped training runs with full metadata
-
-### 🕷️ Data Collection
-- **Optimized Scraper**: 95% faster than original (concurrent processing)
-- **UFC Stats Integration**: Comprehensive fighter statistics and fight history
-- **Live Odds Scraping**: Real-time betting odds from multiple sources
-- **Data Validation**: Robust error handling and retry mechanisms
-
-### 💰 Betting Analysis
-- **Profitability Calculator**: Expected value and Kelly Criterion sizing
-- **Multi-bet Analysis**: Optimal parlay combinations
-- **Live Odds Integration**: TAB Australia and other bookmaker odds
-- **Risk Management**: Correlation penalties and bankroll management
-
-## 🎯 Common Use Cases
-
-### Training New Models
 ```bash
-# Full pipeline with latest data
-uv run python3 main.py --mode pipeline --tune
-
-# Quick retraining (uses existing processed data)
-uv run python3 main.py --mode train --tune
-```
-
-### Making Predictions
-```bash
-# Single fight
-uv run python3 main.py --mode predict --fighter1 "Fighter A" --fighter2 "Fighter B"
-
-# Full card predictions
-uv run python3 main.py --mode card --fights "Fighter1 vs Fighter2" "Fighter3 vs Fighter4"
-
-# Interactive mode
-uv run python3 main.py --mode predict
-```
-
-### Profitability Analysis
-```bash
-# Quick analysis with interactive menu
+# Quick interactive analysis (recommended for beginners)
 ./quick_analysis.sh
 
-# Full profitability analysis with live odds
-uv run python3 run_profitability_analysis.py --sample
+# Full profitability analysis with live TAB odds
+uv run python scripts/run_profitability_analysis.py --sample
 
-# Custom bankroll analysis
-uv run python3 run_profitability_analysis.py --sample --bankroll 500
+# Fast analysis with cached odds
+uv run python scripts/run_profitability_analysis.py --sample --no-live-odds
+
+# Custom bankroll and parameters
+uv run python scripts/run_profitability_analysis.py --bankroll 500 --min-ev 0.08
 ```
 
-### Data Management
+### Testing & Validation
+
 ```bash
-# Performance test of scraper
-uv run python3 test_scraper_performance.py --mode compare
+# Run all tests
+uv run pytest
 
-# Validate scraper optimizations
-uv run python3 validate_optimization.py
+# Run specific test modules
+uv run pytest tests/test_feature_engineering.py
+uv run pytest tests/integration/
+
+# Test profitability scenarios
+uv run python tests/integration/test_tab_australia_profitability.py
+uv run python tests/integration/test_ufc317_profitability.py
+
+# Test ensemble predictions
+uv run python tests/integration/test_production_ensemble.py
 ```
 
-## 📁 Project Structure
+### Development Tools
+
+```bash
+# Format code with black
+uv run black src tests scripts
+
+# Lint with ruff
+uv run ruff check src tests
+
+# Type checking (if mypy installed)
+uv run mypy src
+
+# Run Jupyter notebooks
+uv run jupyter notebook notebooks/production/ufc_predictions.ipynb
+uv run jupyter notebook notebooks/development/feature_engineering.ipynb
+```
+
+## 📊 Key Workflows
+
+### 1. Fresh Start - Complete Setup
+```bash
+# Full workflow from scratch
+uv sync                                          # Install dependencies
+uv run python webscraper/optimized_scraping.py  # Scrape data (5-10 min)
+uv run python scripts/main.py --mode pipeline --tune  # Train models (30-60 min)
+uv run python main.py info                      # Verify models loaded
+```
+
+### 2. Daily Predictions
+```bash
+# Morning routine for upcoming fights
+uv run python main.py card --fights "Fighter1 vs Fighter2" "Fighter3 vs Fighter4"
+uv run python main.py betting --bankroll 1000 --source tab
+```
+
+### 3. Model Retraining
+```bash
+# Weekly/monthly model update
+uv run python webscraper/optimized_scraping.py  # Get latest data
+uv run python scripts/main.py --mode pipeline --tune  # Retrain
+uv run python scripts/main.py --mode results    # Check performance
+```
+
+### 4. Research & Analysis
+```bash
+# Interactive exploration
+uv run jupyter notebook notebooks/production/profitable_betting_analysis.ipynb
+uv run jupyter notebook notebooks/exploratory/UFC_Enhanced_Card_Analysis.ipynb
+```
+
+## 🏗️ Project Structure
 
 ```
 ufc-predictor/
-├── main.py                 # Main CLI interface
-├── webscraper/            
-│   ├── optimized_scraping.py   # 95% faster concurrent scraper
-│   └── scraping.py            # Original scraper
-├── src/                   # Core ML modules
-│   ├── feature_engineering.py # Feature creation and processing
-│   ├── model_training.py     # ML model training
-│   ├── prediction.py         # Fight prediction logic
-│   └── enhanced_*.py         # Advanced ML components
-├── model/                 # Trained models and data
-├── data/                  # Raw and processed datasets
-├── config/                # Configuration files
-└── examples/              # Demo scripts and tutorials
+├── main.py                    # Simplified main entry point
+├── scripts/
+│   ├── main.py               # Original full-featured CLI
+│   └── run_profitability_analysis.py
+├── src/ufc_predictor/
+│   ├── core/
+│   │   ├── unified_predictor.py    # Consolidated prediction logic
+│   │   └── prediction.py           # Legacy prediction
+│   ├── betting/
+│   │   ├── unified_analyzer.py     # Consolidated betting analysis
+│   │   └── tab_profitability.py    # TAB-specific analysis
+│   ├── scrapers/
+│   │   ├── unified_scraper.py      # Consolidated odds scraping
+│   │   └── tab_australia_scraper.py
+│   ├── data/
+│   │   └── feature_engineering.py  # Feature creation
+│   ├── models/
+│   │   └── model_training.py       # Model training pipeline
+│   └── utils/                      # Utilities (ELO, validation, etc.)
+├── webscraper/
+│   ├── optimized_scraping.py       # Fast concurrent scraper
+│   └── scraping.py                 # Original scraper
+├── model/                          # Trained models & datasets
+├── data/                           # Raw & processed data
+├── notebooks/                      # Jupyter notebooks
+├── tests/                          # Test suite
+├── configs/                        # Configuration files
+└── pyproject.toml                 # uv project configuration
 ```
 
-## 🛠️ Advanced Usage
+## ⚙️ Configuration
 
-### Development and Analysis
+### Environment Variables
+Create a `.env` file (optional):
 ```bash
-# Jupyter notebooks for interactive analysis
-jupyter notebook model/ufc_predictions.ipynb
-jupyter notebook model/feature_engineering.ipynb
+# Betting parameters
+DEFAULT_BANKROLL=1000
+MIN_EV_THRESHOLD=0.05
+MAX_BET_PERCENTAGE=0.05
 
-# Enhanced system demonstration
-uv run python3 enhanced_system_demo.py
+# Scraping
+CONCURRENT_REQUESTS=8
+REQUEST_DELAY=0.5
 ```
 
-### Performance Testing
+### Model Configuration
+Edit `configs/model_config.py`:
+```python
+# Key settings
+RANDOM_STATE = 42
+TEST_SIZE = 0.2
+CV_FOLDS = 5
+
+# Hyperparameter grids for tuning
+RF_PARAM_GRID = {...}
+XGB_PARAM_GRID = {...}
+```
+
+## 📈 Performance Metrics
+
+### Scraping Performance
+- **Optimized Scraper**: 5-10 minutes for full dataset
+- **Original Scraper**: 90-120 minutes
+- **Improvement**: 95% faster with concurrent processing
+
+### Model Performance
+- **Winner Prediction**: 72-75% accuracy
+- **Method Prediction**: 70% accuracy (Decision/KO/Submission)
+- **Betting ROI**: 5-15% expected value on identified opportunities
+
+### System Requirements
+- **Memory**: 4GB RAM minimum, 8GB recommended
+- **Storage**: 2GB for models and data
+- **Processing**: Multi-core CPU recommended for training
+
+## 🐛 Troubleshooting
+
+### Common Issues & Solutions
+
 ```bash
-# Quick scraper test (20 fighters)
-uv run python3 test_scraper_performance.py --mode quick
+# Issue: ImportError or module not found
+uv sync  # Reinstall dependencies
 
-# Full performance comparison
-uv run python3 test_scraper_performance.py --mode compare --limit 100
+# Issue: No models found
+uv run python scripts/main.py --mode pipeline --tune  # Train models
+
+# Issue: Scraping timeout or failures
+uv run python webscraper/optimized_scraping.py --limit 50  # Test with fewer fighters
+
+# Issue: Out of memory during training
+# Edit configs/model_config.py to reduce n_estimators or max_depth
+
+# Issue: uv command not found
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Reinstall uv
+source ~/.bashrc  # or ~/.zshrc
 ```
 
-### Configuration
-Key settings in `config/model_config.py`:
-- Model parameters and hyperparameter grids
-- Data file paths and processing options
-- Feature engineering configurations
-
-## 📈 Performance
-
-### Scraper Optimization
-- **Original**: 90-120 minutes for full scrape
-- **Optimized**: 5-10 minutes (95% improvement)
-- **Concurrent requests**: 8 simultaneous connections
-- **Smart delays**: Respectful but efficient server interaction
-
-### Model Accuracy
-- **Winner Prediction**: 72%+ accuracy with tuned Random Forest
-- **Method Prediction**: 75%+ accuracy across KO/TKO, Decision, Submission
-- **Feature Engineering**: 70+ differential features comparing fighters
-- **Validation**: Robust train/test splits with comprehensive metrics
-
-## 🔧 Troubleshooting
-
-### Common Issues
+### Logs & Debugging
 ```bash
-# Missing dependencies
-uv sync  # or pip install -r requirements.txt
+# Check training logs
+ls -la model/training_*/
 
-# Model not found errors
-uv run python3 main.py --mode pipeline  # Retrain models
+# View latest log
+cat logs/autonomous_pipeline.log
 
-# Scraping issues
-uv run python3 webscraper/optimized_scraping.py  # Use optimized scraper
+# Enable debug mode (in scripts)
+export DEBUG=1
+uv run python main.py predict --fighter1 "test" --fighter2 "test"
 ```
-
-### Getting Help
-1. Check `CLAUDE.md` for detailed technical documentation
-2. Run `python3 main.py --help` for command options
-3. Check logs in timestamped directories under `model/training_*/`
-
-## 📋 Dependencies
-
-### Core Requirements
-- **Data Processing**: pandas, numpy, scikit-learn
-- **Web Scraping**: requests, beautifulsoup4, selenium, aiohttp
-- **Machine Learning**: xgboost, lightgbm, joblib
-- **Visualization**: matplotlib, seaborn
-- **Utilities**: PyYAML, jupyter
-
-See `requirements.txt` for complete list with versions.
 
 ## 🤝 Contributing
 
-1. Use the optimized scraper for data collection
-2. Follow the established pipeline for model training
-3. Maintain backward compatibility with existing interfaces
-4. Add tests for new features
-5. Update documentation for significant changes
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Make changes and test:
+   ```bash
+   uv run pytest tests/
+   uv run black src/
+   uv run ruff check src/
+   ```
+4. Commit (`git commit -m 'Add amazing feature'`)
+5. Push (`git push origin feature/amazing-feature`)
+6. Open Pull Request
+
+## 📚 Additional Resources
+
+- **Technical Documentation**: See [CLAUDE.md](CLAUDE.md) for AI assistance context
+- **Command Reference**: [docs/COMMAND_REFERENCE.md](docs/COMMAND_REFERENCE.md)
+- **Getting Started Guide**: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+- **ELO System Guide**: [docs/UFC_ELO_SYSTEM_GUIDE.md](docs/UFC_ELO_SYSTEM_GUIDE.md)
+
+## ⚖️ Disclaimer
+
+This project is for educational and research purposes only. Sports betting involves risk, and you should never bet more than you can afford to lose. Please gamble responsibly and in accordance with your local laws and regulations.
 
 ## 📄 License
 
-This project is for educational and research purposes. Please use responsibly and in accordance with terms of service of data sources.
+MIT License - See LICENSE file for details
 
 ---
 
-**Quick Commands Summary:**
+**Quick Reference Card:**
 ```bash
-# Complete workflow
-uv run python3 webscraper/optimized_scraping.py
-uv run python3 main.py --mode pipeline --tune
-uv run python3 main.py --mode predict --fighter1 "A" --fighter2 "B"
-uv run python3 run_profitability_analysis.py --sample
+# Essential Commands with uv
+uv sync                                          # Setup
+uv run python main.py predict --fighter1 "A" --fighter2 "B"  # Predict
+uv run python main.py betting --bankroll 1000   # Analyze bets
+uv run python scripts/main.py --mode pipeline   # Train models
+uv run pytest                                    # Run tests
 ```
