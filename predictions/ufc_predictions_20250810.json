@@ -1,0 +1,62 @@
+[
+  {
+    "fight": "Roman Dolidze vs Anthony Hernandez",
+    "weight_class": "Middleweight",
+    "raw_prob": 0.6213179880723232,
+    "calibrated_prob": 0.5970543904578586,
+    "favorite": "Roman Dolidze",
+    "underdog": "Anthony Hernandez",
+    "recommended_bet": null,
+    "stake": 0
+  },
+  {
+    "fight": "Steve Erceg vs Ode Osbourne",
+    "weight_class": "Bantamweight",
+    "raw_prob": 0.45055472012664344,
+    "calibrated_prob": 0.46044377610131476,
+    "favorite": "Ode Osbourne",
+    "underdog": "Steve Erceg",
+    "recommended_bet": "Steve Erceg",
+    "stake": 11.350131737119947
+  },
+  {
+    "fight": "Iasmin Lucindo vs Angela Hill",
+    "weight_class": "Women's Strawweight",
+    "raw_prob": 0.4382566071097805,
+    "calibrated_prob": 0.4506052856878244,
+    "favorite": "Angela Hill",
+    "underdog": "Iasmin Lucindo",
+    "recommended_bet": "Iasmin Lucindo",
+    "stake": 6.998491746537704
+  },
+  {
+    "fight": "Andre Fili vs Christian Rodriguez",
+    "weight_class": "Featherweight",
+    "raw_prob": 0.642002758246781,
+    "calibrated_prob": 0.6136022065974248,
+    "favorite": "Andre Fili",
+    "underdog": "Christian Rodriguez",
+    "recommended_bet": "Andre Fili",
+    "stake": 0.7734232553389807
+  },
+  {
+    "fight": "Miles Johns vs Jean Matsumoto",
+    "weight_class": "Bantamweight",
+    "raw_prob": 0.3306608870959283,
+    "calibrated_prob": 0.3645287096767426,
+    "favorite": "Jean Matsumoto",
+    "underdog": "Miles Johns",
+    "recommended_bet": "Jean Matsumoto",
+    "stake": 0.297833871431259
+  },
+  {
+    "fight": "Eryk Anders vs Christian Leroy Duncan",
+    "weight_class": "Middleweight",
+    "raw_prob": 0.5483360808577431,
+    "calibrated_prob": 0.5386688646861945,
+    "favorite": "Eryk Anders",
+    "underdog": "Christian Leroy Duncan",
+    "recommended_bet": "Christian Leroy Duncan",
+    "stake": 11.742617542644728
+  }
+]

@@ -1,0 +1,102 @@
+# Feature engineering configuration for UFC Predictor
+# Controls which features are generated and their parameters
+
+feature_pipeline:
+  version: "enhanced_v1"
+  enable_all: true
+  fallback_to_legacy: true
+  validate_features: true
+  
+  # Performance settings
+  max_memory_mb: 4096
+  optimize_for_prediction_speed: true
+  n_jobs: -1  # Use all CPU cores
+
+# Context features configuration
+context:
+  enabled: true
+  altitude_threshold_m: 1500
+  short_notice_days: 14
+  enable_all: true
+
+# Matchup interaction features
+matchup:
+  enabled: true
+
+# Opponent quality adjustment
+quality_adjustment:
+  enabled: false  # Temporarily disabled - requires fighter stats data
+  rating_system: bradley_terry  # or 'elo'
+  min_fights_for_adjustment: 3
+  adjustment_method: multiplicative  # or 'additive'
+
+# Rolling and decay-weighted profiles
+rolling:
+  enabled: false  # Temporarily disabled - requires historical fight data
+  windows: [3, 5]  # Number of fights
+  decay_factor: 0.93
+  min_fights_for_rolling: 2
+  
+
+# Feature selection
+feature_selection:
+  enabled: false  # Set to true to enable feature selection
+  method: mutual_info  # Options: mutual_info, chi2, f_classif, recursive
+  max_features: 150
+  min_importance: 0.001
+
+# Differential features
+differential:
+  enabled: true
+  create_ratios: true
+  create_differences: true
+  create_advantages: true
+  
+# Feature engineering pipeline order
+pipeline_order:
+  - context
+  - matchup
+  - quality_adjustment
+  - rolling
+  - differential
+
+# Feature validation rules
+validation:
+  max_nan_percentage: 0.2  # Maximum 20% NaN values allowed
+  check_distributions: true
+  check_correlations: true
+  max_correlation: 0.95  # Remove features with correlation > 0.95
+  min_variance: 0.001  # Remove features with very low variance
+
+# Data quality rules
+data_quality:
+  drop_missing_core_fields: true
+  core_fields:
+    - date
+    - fighter_a
+    - fighter_b
+    - winner
+  
+  imputation_strategy:
+    numerical: median
+    categorical: mode
+    
+  outlier_detection:
+    enabled: true
+    method: isolation_forest
+    contamination: 0.05
+
+# Feature versioning
+versioning:
+  track_feature_changes: true
+  save_feature_metadata: true
+  compatible_versions:
+    - enhanced_v1
+    - legacy_v1
+  
+# Logging configuration
+logging:
+  level: INFO
+  log_feature_generation_time: true
+  log_feature_counts: true
+  log_validation_results: true

@@ -1,0 +1,121 @@
+{
+  "summary": {
+    "total_features": 70,
+    "features_for_80_pct": 32,
+    "features_for_90_pct": 41,
+    "low_importance_features": 20,
+    "very_low_importance_features": 10,
+    "top_feature": "wins_diff",
+    "top_feature_importance": 6.02457429711836
+  },
+  "top_20_features": [
+    {
+      "feature": "wins_diff",
+      "importance_pct": 6.02457429711836,
+      "cumulative_importance_pct": 6.02457429711836
+    },
+    {
+      "feature": "slpm_diff",
+      "importance_pct": 5.370069595610831,
+      "cumulative_importance_pct": 11.39464389272919
+    },
+    {
+      "feature": "td_def_diff",
+      "importance_pct": 3.671398232923828,
+      "cumulative_importance_pct": 15.066042125653018
+    },
+    {
+      "feature": "sapm_diff",
+      "importance_pct": 3.2099643533529525,
+      "cumulative_importance_pct": 18.27600647900597
+    },
+    {
+      "feature": "age_diff",
+      "importance_pct": 3.1060828352100516,
+      "cumulative_importance_pct": 21.382089314216024
+    },
+    {
+      "feature": "str_acc_diff",
+      "importance_pct": 3.0551911757539734,
+      "cumulative_importance_pct": 24.437280489969996
+    },
+    {
+      "feature": "str_def_diff",
+      "importance_pct": 2.99139979263131,
+      "cumulative_importance_pct": 27.428680282601306
+    },
+    {
+      "feature": "losses_diff",
+      "importance_pct": 2.937953482979384,
+      "cumulative_importance_pct": 30.36663376558069
+    },
+    {
+      "feature": "blue_Wins",
+      "importance_pct": 2.7045230112007164,
+      "cumulative_importance_pct": 33.07115677678141
+    },
+    {
+      "feature": "red_Wins",
+      "importance_pct": 2.67168313601184,
+      "cumulative_importance_pct": 35.742839912793244
+    },
+    {
+      "feature": "red_SLpM",
+      "importance_pct": 2.4799445137288894,
+      "cumulative_importance_pct": 38.22278442652213
+    },
+    {
+      "feature": "blue_SLpM",
+      "importance_pct": 2.4697803341266233,
+      "cumulative_importance_pct": 40.69256476064876
+    },
+    {
+      "feature": "blue_TD Acc.",
+      "importance_pct": 2.4234509354296154,
+      "cumulative_importance_pct": 43.11601569607837
+    },
+    {
+      "feature": "td_avg_diff",
+      "importance_pct": 2.395028019309179,
+      "cumulative_importance_pct": 45.51104371538755
+    },
+    {
+      "feature": "red_TD Acc.",
+      "importance_pct": 2.328138303657595,
+      "cumulative_importance_pct": 47.83918201904515
+    },
+    {
+      "feature": "blue_TD Avg.",
+      "importance_pct": 2.3091178460585398,
+      "cumulative_importance_pct": 50.14829986510369
+    },
+    {
+      "feature": "red_TD Avg.",
+      "importance_pct": 2.302097536387738,
+      "cumulative_importance_pct": 52.45039740149143
+    },
+    {
+      "feature": "red_TD Def.",
+      "importance_pct": 2.2049900564415146,
+      "cumulative_importance_pct": 54.655387457932946
+    },
+    {
+      "feature": "blue_TD Def.",
+      "importance_pct": 2.1925210265761925,
+      "cumulative_importance_pct": 56.84790848450914
+    },
+    {
+      "feature": "td_acc_diff",
+      "importance_pct": 2.1575154133470344,
+      "cumulative_importance_pct": 59.005423897856176
+    }
+  ],
+  "category_counts": {
+    "striking": 6,
+    "grappling": 12,
+    "physical": 15,
+    "experience": 9,
+    "differential": 9,
+    "other": 19
+  }
+}

@@ -101,13 +101,14 @@ def get_latest_trained_models():
         method_model_path = 'model/ufc_multiclass_model.joblib'
         winner_cols_path = 'model/winner_model_columns.json'
         method_cols_path = 'model/method_model_columns.json'
+        feature_selector_path = None  # No feature selector in fallback
         fighters_data_path = str(CORRECTED_FIGHTERS_DATA)
         
         # Check if files exist
         if not Path(winner_model_path).exists():
             winner_model_path = 'model/ufc_random_forest_model.joblib'
         
-        return winner_model_path, method_model_path, winner_cols_path, method_cols_path, fighters_data_path
+        return winner_model_path, method_model_path, winner_cols_path, method_cols_path, feature_selector_path, fighters_data_path
     
     # Get the most recent training directory
     latest_training_dir = max(training_dirs, key=lambda x: x.stat().st_mtime)
@@ -118,6 +119,7 @@ def get_latest_trained_models():
     method_models = list(latest_training_dir.glob('ufc_method_model_*.joblib'))
     winner_cols_files = list(latest_training_dir.glob('winner_model_columns_*.json'))
     method_cols_files = list(latest_training_dir.glob('method_model_columns_*.json'))
+    feature_selector_files = list(latest_training_dir.glob('*_feature_selector.json'))
     fighters_data_files = list(latest_training_dir.glob('ufc_fighters_engineered_*.csv'))
     
     # Prefer tuned models if available
@@ -131,13 +133,16 @@ def get_latest_trained_models():
     method_model_path = str(max(method_models, key=lambda x: x.stat().st_mtime)) if method_models else 'model/ufc_multiclass_model.joblib'
     winner_cols_path = str(max(winner_cols_files, key=lambda x: x.stat().st_mtime)) if winner_cols_files else 'model/winner_model_columns.json'
     method_cols_path = str(max(method_cols_files, key=lambda x: x.stat().st_mtime)) if method_cols_files else 'model/method_model_columns.json'
+    feature_selector_path = str(max(feature_selector_files, key=lambda x: x.stat().st_mtime)) if feature_selector_files else None
     fighters_data_path = str(max(fighters_data_files, key=lambda x: x.stat().st_mtime)) if fighters_data_files else str(CORRECTED_FIGHTERS_DATA)
     
     print(f"📁 Using latest trained models from: {latest_training_dir.name}")
     print(f"   Winner model: {Path(winner_model_path).name}")
     print(f"   Method model: {Path(method_model_path).name}")
+    if feature_selector_path:
+        print(f"   Feature selector: {Path(feature_selector_path).name}")
     
-    return winner_model_path, method_model_path, winner_cols_path, method_cols_path, fighters_data_path
+    return winner_model_path, method_model_path, winner_cols_path, method_cols_path, feature_selector_path, fighters_data_path
 
 def clean_method_column(df):
     """Clean the Method column for multiclass training (from notebook)."""
@@ -172,15 +177,33 @@ def main():
                        help="Path to trained method model")
     parser.add_argument("--tune", action="store_true", 
                        help="Tune model hyperparameters during training")
+    parser.add_argument("--feature-selection", action="store_true",
+                       help="Enable feature selection to reduce dimensionality")
+    parser.add_argument("--n-features", type=int, default=32,
+                       help="Number of features to select (default: 32)")
+    parser.add_argument("--selection-method", type=str, 
+                       default="importance_based",
+                       choices=["importance_based", "mutual_info", "f_classif", "recursive"],
+                       help="Feature selection method")
     parser.add_argument("--metadata", type=str,
                        help="Path to training metadata file for results display")
     
     args = parser.parse_args()
     
     if args.mode == "pipeline":
-        run_complete_pipeline(tune_hyperparameters=args.tune)
+        run_complete_pipeline(
+            tune_hyperparameters=args.tune,
+            enable_feature_selection=args.feature_selection,
+            n_features=args.n_features,
+            selection_method=args.selection_method
+        )
     elif args.mode == "train":
-        train_models(tune_hyperparameters=args.tune)
+        train_models(
+            tune_hyperparameters=args.tune,
+            enable_feature_selection=args.feature_selection,
+            n_features=args.n_features,
+            selection_method=args.selection_method
+        )
     elif args.mode == "predict":
         if args.fighter1 and args.fighter2:
             make_prediction(args.fighter1, args.fighter2, args.model_path, args.method_model_path)
@@ -207,7 +230,10 @@ def main():
                 print("No training metadata files found. Run training first with --mode pipeline or --mode train")
 
 
-def run_complete_pipeline(tune_hyperparameters: bool = True):
+def run_complete_pipeline(tune_hyperparameters: bool = True, 
+                          enable_feature_selection: bool = False,
+                          n_features: int = 32,
+                          selection_method: str = 'importance_based'):
     """Run the complete data processing and model training pipeline."""
     print("=== UFC Predictor: Complete Pipeline (Winner + Method) ===")
     
@@ -272,7 +298,13 @@ def run_complete_pipeline(tune_hyperparameters: bool = True):
     
     # 7. Train WINNER models
     print("\n7. Training winner prediction models...")
-    trainer = train_complete_pipeline(X_winner, y_winner, tune_hyperparameters=tune_hyperparameters)
+    trainer = train_complete_pipeline(
+        X_winner, y_winner, 
+        tune_hyperparameters=tune_hyperparameters,
+        enable_feature_selection=enable_feature_selection,
+        feature_selection_method=selection_method,
+        n_features=n_features
+    )
     
     # 8. Train METHOD models with GridSearch
     print("\n8. Training method prediction models...")
@@ -521,7 +553,10 @@ def display_training_results(metadata_path: str):
     except Exception as e:
         print(f"Error reading training results: {e}")
 
-def train_models(tune_hyperparameters: bool = True):
+def train_models(tune_hyperparameters: bool = True,
+                 enable_feature_selection: bool = False,
+                 n_features: int = 32,
+                 selection_method: str = 'importance_based'):
     """Train models using existing processed data with detailed results."""
     print("=== Training Models (Standalone Mode) ===")
     
@@ -577,7 +612,13 @@ def train_models(tune_hyperparameters: bool = True):
         
         # Train winner models
         print("\nTraining winner models...")
-        trainer = train_complete_pipeline(X_winner, y_winner, tune_hyperparameters=tune_hyperparameters)
+        trainer = train_complete_pipeline(
+            X_winner, y_winner, 
+            tune_hyperparameters=tune_hyperparameters,
+            enable_feature_selection=enable_feature_selection,
+            feature_selection_method=selection_method,
+            n_features=n_features
+        )
         
         # Train method models (same logic as in pipeline)
         print("\nTraining method models...")
@@ -637,7 +678,7 @@ def train_models(tune_hyperparameters: bool = True):
 
 
 # --- Enhanced Prediction Functions (from notebook) ---
-def _get_full_prediction_from_perspective(fighter1_name, fighter2_name, all_fighters_data, win_cols, meth_cols, win_model, meth_model):
+def _get_full_prediction_from_perspective(fighter1_name, fighter2_name, all_fighters_data, win_cols, meth_cols, win_model, meth_model, feature_selector=None):
     """Helper function to get raw prediction probabilities from a single perspective."""
     fighter1_stats = all_fighters_data[all_fighters_data['Name'] == fighter1_name]
     fighter2_stats = all_fighters_data[all_fighters_data['Name'] == fighter2_name]
@@ -659,6 +700,11 @@ def _get_full_prediction_from_perspective(fighter1_name, fighter2_name, all_figh
     prediction_df_base = pd.DataFrame([single_fight_data])
 
     X_winner = prediction_df_base.reindex(columns=win_cols, fill_value=0)
+    
+    # Apply feature selection if available
+    if feature_selector is not None:
+        X_winner = feature_selector.transform(X_winner)
+    
     winner_probs = win_model.predict_proba(X_winner)[0]
 
     X_method = prediction_df_base.reindex(columns=meth_cols, fill_value=0)
@@ -666,14 +712,14 @@ def _get_full_prediction_from_perspective(fighter1_name, fighter2_name, all_figh
     
     return winner_probs, method_probs
 
-def predict_fight_symmetrical(fighter_a, fighter_b, all_fighters_data, win_cols, meth_cols, win_model, meth_model):
+def predict_fight_symmetrical(fighter_a, fighter_b, all_fighters_data, win_cols, meth_cols, win_model, meth_model, feature_selector=None):
     """Calculates a final, symmetrical prediction for both winner and method."""
     # Prediction 1: A is in the blue corner
-    winner_probs1, method_probs1 = _get_full_prediction_from_perspective(fighter_a, fighter_b, all_fighters_data, win_cols, meth_cols, win_model, meth_model)
+    winner_probs1, method_probs1 = _get_full_prediction_from_perspective(fighter_a, fighter_b, all_fighters_data, win_cols, meth_cols, win_model, meth_model, feature_selector)
     if "error" in winner_probs1: return winner_probs1
 
     # Prediction 2: B is in the blue corner
-    winner_probs2, method_probs2 = _get_full_prediction_from_perspective(fighter_b, fighter_a, all_fighters_data, win_cols, meth_cols, win_model, meth_model)
+    winner_probs2, method_probs2 = _get_full_prediction_from_perspective(fighter_b, fighter_a, all_fighters_data, win_cols, meth_cols, win_model, meth_model, feature_selector)
     if "error" in winner_probs2: return winner_probs2
 
     # Average the winner probabilities
@@ -711,17 +757,19 @@ def make_prediction(fighter1: str, fighter2: str, winner_model_path: str = None,
         # Auto-detect latest models if paths not provided
         if not winner_model_path or not method_model_path:
             print("🔍 Auto-detecting latest trained models...")
-            auto_winner_path, auto_method_path, auto_winner_cols, auto_method_cols, auto_fighters_data = get_latest_trained_models()
+            auto_winner_path, auto_method_path, auto_winner_cols, auto_method_cols, auto_feature_selector, auto_fighters_data = get_latest_trained_models()
             
             winner_model_path = winner_model_path or auto_winner_path
             method_model_path = method_model_path or auto_method_path
             winner_cols_path = auto_winner_cols
             method_cols_path = auto_method_cols
+            feature_selector_path = auto_feature_selector
             fighters_data_path = auto_fighters_data
         else:
             # Use standard column files and fighter data
             winner_cols_path = 'model/winner_model_columns.json'
             method_cols_path = 'model/method_model_columns.json'
+            feature_selector_path = None
             fighters_data_path = str(CORRECTED_FIGHTERS_DATA)
         
         # Load models and data
@@ -732,13 +780,24 @@ def make_prediction(fighter1: str, fighter2: str, winner_model_path: str = None,
             winner_cols = json.load(f)
         with open(method_cols_path, 'r') as f:
             method_cols = json.load(f)
+        
+        # Load feature selector if available
+        feature_selector = None
+        if feature_selector_path and Path(feature_selector_path).exists():
+            try:
+                from ufc_predictor.models.feature_selection import UFCFeatureSelector
+                feature_selector = UFCFeatureSelector.load_selection(feature_selector_path)
+                print(f"🎯 Loaded feature selector: {len(feature_selector.selected_features_)} features")
+            except Exception as e:
+                print(f"⚠️  Could not load feature selector: {e}")
+                feature_selector = None
             
         fighters_df = pd.read_csv(fighters_data_path)
         
         # Make prediction
         result = predict_fight_symmetrical(
             fighter1, fighter2, fighters_df, 
-            winner_cols, method_cols, winner_model, method_model
+            winner_cols, method_cols, winner_model, method_model, feature_selector
         )
         
         if 'error' in result:

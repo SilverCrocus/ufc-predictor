@@ -6,18 +6,20 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV, TimeSe
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, log_loss
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, log_loss, roc_auc_score
 from typing import Tuple, Dict, Any, Optional
 import matplotlib.pyplot as plt
 import seaborn as sns
 import xgboost as xgb
 import logging
+from pathlib import Path
+from ..evaluation.calibration import UFCProbabilityCalibrator
 
 logger = logging.getLogger(__name__)
 
 
 class UFCModelTrainer:
-    """Class for training UFC fight prediction models."""
+    """Class for training UFC fight prediction models with stacking ensemble support."""
     
     def __init__(self, random_state: int = 42):
         self.random_state = random_state
@@ -25,6 +27,7 @@ class UFCModelTrainer:
         self.scalers = {}
         self.model_scores = {}
         self.feature_columns = None
+        self.feature_selector = None  # Store feature selector for consistency
         self.X_test = None
         self.y_test = None
         
@@ -34,6 +37,15 @@ class UFCModelTrainer:
             'xgboost': 0.35,
             'neural_network': 0.25
         }
+        
+        # Stacking ensemble components
+        self.stacking_manager = None
+        self.enable_stacking = False
+        
+        # Probability calibration components
+        self.calibrators = {}
+        self.enable_calibration = True
+        self.calibration_method = 'platt'  # Default to Platt scaling for robustness
         
     def split_data(self, X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> Tuple:
         """Split data into training and testing sets."""
@@ -419,6 +431,12 @@ class UFCModelTrainer:
                 json.dump(feature_columns, f)
             print(f"Feature columns saved to '{columns_filepath}'")
         
+        # Save feature selector if exists
+        if self.feature_selector is not None:
+            selector_filepath = filepath.replace('.joblib', '_feature_selector.json')
+            self.feature_selector.save_selection(selector_filepath)
+            print(f"Feature selector saved to '{selector_filepath}'")
+        
         # Save scaler if exists
         if model_name in self.scalers:
             scaler_filepath = filepath.replace('.joblib', '_scaler.joblib')
@@ -437,28 +455,443 @@ class UFCModelTrainer:
         """Load feature columns from JSON file."""
         with open(filepath, 'r') as f:
             return json.load(f)
+    
+    def enable_stacking_ensemble(self, cv_splits: int = 5, 
+                                temporal_validation: bool = True,
+                                enable_optimization: bool = True):
+        """Enable stacking ensemble for improved predictions"""
+        try:
+            from .stacking_ensemble import ProductionStackingManager, create_stacking_config
+            
+            # Create stacking configuration
+            stacking_config = create_stacking_config(
+                base_model_weights=self.ensemble_weights,
+                cv_splits=cv_splits,
+                temporal_validation=temporal_validation,
+                enable_optimization=enable_optimization
+            )
+            
+            # Initialize stacking manager
+            self.stacking_manager = ProductionStackingManager(stacking_config)
+            self.enable_stacking = True
+            
+            logger.info(f"Stacking ensemble enabled with {cv_splits} CV splits")
+            
+        except ImportError as e:
+            logger.error(f"Failed to import stacking ensemble: {e}")
+            raise ValueError("Stacking ensemble module not available")
+        except Exception as e:
+            logger.error(f"Failed to initialize stacking ensemble: {e}")
+            raise
+    
+    def train_stacking_ensemble(self, X_train: pd.DataFrame, y_train: pd.Series):
+        """Train the stacking ensemble using base models"""
+        
+        if not self.enable_stacking:
+            raise ValueError("Stacking ensemble not enabled. Call enable_stacking_ensemble() first.")
+        
+        if not self.models:
+            raise ValueError("No base models available. Train base models first.")
+        
+        logger.info("Training stacking ensemble...")
+        
+        # Get base models for stacking (prefer tuned versions)
+        base_models = {}
+        for model_type in ['random_forest', 'xgboost', 'logistic_regression']:
+            tuned_name = f'{model_type}_tuned'
+            if tuned_name in self.models:
+                base_models[model_type] = self.models[tuned_name]
+            elif model_type in self.models:
+                base_models[model_type] = self.models[model_type]
+        
+        if len(base_models) < 2:
+            raise ValueError(f"Need at least 2 base models for stacking, got {len(base_models)}")
+        
+        # Load base models into stacking manager
+        self.stacking_manager.models = base_models
+        self.stacking_manager.is_initialized = True
+        
+        # Fit stacking ensemble
+        self.stacking_manager.fit_stacking_ensemble(X_train, y_train)
+        
+        logger.info("Stacking ensemble training completed")
+    
+    def predict_with_stacking(self, X: pd.DataFrame, 
+                             fighter_pairs: Optional[list] = None) -> Dict[str, Any]:
+        """Generate predictions using stacking ensemble"""
+        
+        if not self.enable_stacking:
+            raise ValueError("Stacking ensemble not enabled")
+        
+        if not self.stacking_manager.is_stacking_fitted:
+            raise ValueError("Stacking ensemble not fitted")
+        
+        # Generate fighter pairs if not provided
+        if fighter_pairs is None:
+            fighter_pairs = [(f'Fighter_A_{i}', f'Fighter_B_{i}') for i in range(len(X))]
+        
+        # Get stacking predictions
+        stacking_results = self.stacking_manager.predict_stacking(
+            X, fighter_pairs, enable_bootstrap=True
+        )
+        
+        # Also get base model predictions for comparison
+        base_predictions = {}
+        for model_name, model in self.models.items():
+            if hasattr(model, 'predict_proba'):
+                base_predictions[model_name] = model.predict_proba(X)[:, 1]
+            else:
+                base_predictions[model_name] = model.predict(X)
+        
+        return {
+            'stacking_results': stacking_results,
+            'base_predictions': base_predictions,
+            'meta_learner': stacking_results[0].meta_learner_name if stacking_results else None,
+            'oof_score': stacking_results[0].oof_validation_score if stacking_results else None
+        }
+    
+    def evaluate_stacking_ensemble(self, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
+        """Evaluate stacking ensemble performance"""
+        
+        if not self.enable_stacking:
+            raise ValueError("Stacking ensemble not enabled")
+        
+        # Get stacking predictions
+        prediction_results = self.predict_with_stacking(X_test)
+        stacking_results = prediction_results['stacking_results']
+        
+        # Extract probabilities and classes
+        stacked_probs = [r.stacked_probability for r in stacking_results]
+        stacked_classes = [1 if p > 0.5 else 0 for p in stacked_probs]
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, stacked_classes)
+        auc = roc_auc_score(y_test, stacked_probs)
+        log_loss_score = log_loss(y_test, stacked_probs)
+        
+        # Compare with base models
+        base_predictions = prediction_results['base_predictions']
+        base_scores = {}
+        
+        for model_name, preds in base_predictions.items():
+            if len(preds.shape) > 1:
+                preds = preds[:, 1] if preds.shape[1] > 1 else preds.flatten()
+            
+            base_classes = [1 if p > 0.5 else 0 for p in preds]
+            base_accuracy = accuracy_score(y_test, base_classes)
+            try:
+                base_auc = roc_auc_score(y_test, preds)
+            except ValueError:
+                base_auc = 0.5
+            
+            base_scores[f'{model_name}_accuracy'] = base_accuracy
+            base_scores[f'{model_name}_auc'] = base_auc
+        
+        results = {
+            'stacking_accuracy': accuracy,
+            'stacking_auc': auc,
+            'stacking_log_loss': log_loss_score,
+            'meta_learner': prediction_results['meta_learner'],
+            'oof_validation_auc': prediction_results['oof_score'],
+            **base_scores
+        }
+        
+        # Log results
+        logger.info("Stacking Ensemble Evaluation Results:")
+        logger.info(f"  Meta-learner: {results['meta_learner']}")
+        logger.info(f"  OOF Validation AUC: {results['oof_validation_auc']:.4f}")
+        logger.info(f"  Test Accuracy: {results['stacking_accuracy']:.4f}")
+        logger.info(f"  Test AUC: {results['stacking_auc']:.4f}")
+        logger.info(f"  Test Log Loss: {results['stacking_log_loss']:.4f}")
+        
+        return results
+    
+    def save_stacking_ensemble(self, filepath: str):
+        """Save stacking ensemble to disk"""
+        
+        if not self.enable_stacking:
+            raise ValueError("Stacking ensemble not enabled")
+        
+        if not self.stacking_manager.is_stacking_fitted:
+            raise ValueError("No fitted stacking ensemble to save")
+        
+        self.stacking_manager.save_stacking_ensemble(filepath)
+    
+    def load_stacking_ensemble(self, filepath: str):
+        """Load stacking ensemble from disk"""
+        
+        if not self.models:
+            raise ValueError("Base models must be loaded first")
+        
+        try:
+            from .stacking_ensemble import ProductionStackingManager
+            
+            self.stacking_manager = ProductionStackingManager.load_stacking_ensemble(
+                filepath, self.models
+            )
+            self.enable_stacking = True
+            
+            logger.info("Stacking ensemble loaded successfully")
+            
+        except ImportError as e:
+            logger.error(f"Failed to import stacking ensemble: {e}")
+            raise ValueError("Stacking ensemble module not available")
+    
+    def get_stacking_summary(self) -> Dict[str, Any]:
+        """Get comprehensive summary of stacking ensemble"""
+        
+        if not self.enable_stacking:
+            return {'stacking_enabled': False}
+        
+        summary = {'stacking_enabled': True}
+        
+        if self.stacking_manager:
+            summary.update(self.stacking_manager.get_stacking_summary())
+        
+        return summary
+
+    def fit_probability_calibration(self, X_train: pd.DataFrame, y_train: pd.Series, 
+                                   validation_split: float = 0.2) -> Dict[str, Any]:
+        """
+        Fit probability calibration for all trained models using out-of-fold validation.
+        
+        Args:
+            X_train: Training features
+            y_train: Training targets
+            validation_split: Fraction of training data to use for calibration
+            
+        Returns:
+            Dictionary of calibration results
+        """
+        if not self.models:
+            raise ValueError("No trained models available. Train models first.")
+        
+        # Split training data for calibration validation
+        X_cal_train, X_cal_val, y_cal_train, y_cal_val = train_test_split(
+            X_train, y_train, test_size=validation_split, random_state=self.random_state
+        )
+        
+        calibration_results = {}
+        
+        for model_name, model in self.models.items():
+            if not hasattr(model, 'predict_proba'):
+                logger.info(f"Skipping calibration for {model_name} - no probability prediction")
+                continue
+            
+            logger.info(f"Fitting calibration for {model_name}")
+            
+            try:
+                # Get out-of-fold predictions for calibration
+                if model_name == 'logistic_regression' and model_name in self.scalers:
+                    X_cal_val_processed = self.scalers[model_name].transform(X_cal_val)
+                else:
+                    X_cal_val_processed = X_cal_val
+                
+                # Get uncalibrated probabilities
+                y_prob_uncalibrated = model.predict_proba(X_cal_val_processed)[:, 1]
+                
+                # Check if calibration is needed
+                calibrator = UFCProbabilityCalibrator(method=self.calibration_method)
+                should_calibrate = calibrator.should_calibrate_model(
+                    y_cal_val.values, 
+                    y_prob_uncalibrated,
+                    ece_threshold=0.05,
+                    odds_included='odds' in str(X_train.columns).lower()
+                )
+                
+                if should_calibrate:
+                    # Create out-of-fold DataFrame for calibration
+                    oof_df = pd.DataFrame({
+                        'prob_pred': y_prob_uncalibrated,
+                        'winner': y_cal_val.values
+                    })
+                    
+                    # Fit calibration
+                    cal_results = calibrator.fit_isotonic_by_segment(
+                        oof_df, prob_col='prob_pred', target_col='winner'
+                    )
+                    
+                    self.calibrators[model_name] = calibrator
+                    calibration_results[model_name] = {
+                        'calibrated': True,
+                        'method': self.calibration_method,
+                        'ece_improvement': cal_results['overall'].pre_calibration_ece - cal_results['overall'].post_calibration_ece,
+                        'brier_improvement': cal_results['overall'].pre_calibration_brier - cal_results['overall'].post_calibration_brier
+                    }
+                    
+                    logger.info(f"Calibration fitted for {model_name}: ECE improved by {calibration_results[model_name]['ece_improvement']:.4f}")
+                else:
+                    calibration_results[model_name] = {
+                        'calibrated': False,
+                        'reason': 'Already well-calibrated'
+                    }
+                    logger.info(f"Calibration skipped for {model_name}: already well-calibrated")
+                    
+            except Exception as e:
+                logger.warning(f"Calibration failed for {model_name}: {str(e)}")
+                calibration_results[model_name] = {
+                    'calibrated': False,
+                    'reason': f'Calibration failed: {str(e)}'
+                }
+        
+        return calibration_results
+    
+    def get_calibrated_predictions(self, model_name: str, X: pd.DataFrame) -> np.ndarray:
+        """
+        Get calibrated probability predictions for a model.
+        
+        Args:
+            model_name: Name of the model
+            X: Features to predict
+            
+        Returns:
+            Calibrated probabilities
+        """
+        if model_name not in self.models:
+            raise ValueError(f"Model '{model_name}' not found")
+        
+        model = self.models[model_name]
+        
+        # Get raw predictions
+        if model_name == 'logistic_regression' and model_name in self.scalers:
+            X_processed = self.scalers[model_name].transform(X)
+        else:
+            X_processed = X
+        
+        raw_probs = model.predict_proba(X_processed)[:, 1]
+        
+        # Apply calibration if available
+        if model_name in self.calibrators:
+            prob_df = pd.DataFrame({'prob_pred': raw_probs})
+            calibrated_probs = self.calibrators[model_name].apply_calibration(prob_df)
+            return calibrated_probs
+        else:
+            return raw_probs
+    
+    def set_calibration_method(self, method: str):
+        """
+        Set the calibration method.
+        
+        Args:
+            method: 'platt' for Platt scaling or 'isotonic' for isotonic regression
+        """
+        if method not in ['platt', 'isotonic']:
+            raise ValueError(f"Method must be 'platt' or 'isotonic', got {method}")
+        
+        self.calibration_method = method
+        logger.info(f"Calibration method set to: {method}")
+    
+    def save_calibrators(self, filepath: str):
+        """Save calibrators to disk."""
+        if not self.calibrators:
+            logger.warning("No calibrators to save")
+            return
+        
+        for model_name, calibrator in self.calibrators.items():
+            cal_filepath = filepath.replace('.joblib', f'_calibrator_{model_name}.joblib')
+            calibrator.save_calibrators(cal_filepath)
+            logger.info(f"Calibrator for {model_name} saved to {cal_filepath}")
+    
+    def load_calibrators(self, filepath_pattern: str):
+        """Load calibrators from disk."""
+        for model_name in self.models.keys():
+            cal_filepath = filepath_pattern.replace('.joblib', f'_calibrator_{model_name}.joblib')
+            if Path(cal_filepath).exists():
+                calibrator = UFCProbabilityCalibrator(method=self.calibration_method)
+                calibrator.load_calibrators(cal_filepath)
+                self.calibrators[model_name] = calibrator
+                logger.info(f"Calibrator for {model_name} loaded from {cal_filepath}")
+    
+    def get_calibration_summary(self) -> pd.DataFrame:
+        """Get summary of calibration status for all models."""
+        summaries = []
+        
+        for model_name, model in self.models.items():
+            summary = {
+                'model': model_name,
+                'has_proba': hasattr(model, 'predict_proba'),
+                'calibrated': model_name in self.calibrators,
+                'method': self.calibration_method if model_name in self.calibrators else 'none'
+            }
+            
+            if model_name in self.calibrators:
+                cal_results = self.calibrators[model_name].get_calibration_summary()
+                if not cal_results.empty:
+                    overall_result = cal_results[cal_results['segment'] == 'overall'].iloc[0]
+                    summary['ece_improvement'] = overall_result['ece_improvement']
+                    summary['brier_improvement'] = overall_result['brier_improvement']
+            
+            summaries.append(summary)
+        
+        return pd.DataFrame(summaries)
 
 
 def train_complete_pipeline(X: pd.DataFrame, y: pd.Series, 
                           tune_hyperparameters: bool = True,
-                          enable_ensemble: bool = True) -> UFCModelTrainer:
+                          enable_ensemble: bool = True,
+                          enable_stacking: bool = False,
+                          enable_feature_selection: bool = False,
+                          feature_selection_method: str = 'importance_based',
+                          n_features: int = 32,
+                          enable_calibration: bool = True,
+                          calibration_method: str = 'platt') -> UFCModelTrainer:
     """
-    Complete training pipeline for UFC prediction models including XGBoost ensemble.
+    Complete training pipeline for UFC prediction models including ensemble and stacking.
     
     Args:
         X: Feature DataFrame
         y: Target Series
         tune_hyperparameters: Whether to tune hyperparameters
         enable_ensemble: Whether to train XGBoost for ensemble
+        enable_stacking: Whether to train stacking ensemble
+        enable_feature_selection: Whether to apply feature selection
+        feature_selection_method: Method for feature selection
+        n_features: Number of features to select
+        enable_calibration: Whether to apply probability calibration
+        calibration_method: 'platt' for Platt scaling, 'isotonic' for isotonic regression
         
     Returns:
-        Trained UFCModelTrainer instance
+        Trained UFCModelTrainer instance with optional feature selection
     """
     trainer = UFCModelTrainer()
+    
+    # Set calibration method
+    if enable_calibration:
+        trainer.set_calibration_method(calibration_method)
     
     # Split data
     X_train, X_test, y_train, y_test = trainer.split_data(X, y)
     print(f"Data split - Training: {X_train.shape}, Testing: {X_test.shape}")
+    
+    # Apply feature selection if enabled
+    feature_selector = None
+    if enable_feature_selection:
+        print(f"\n🎯 FEATURE SELECTION")
+        print(f"Method: {feature_selection_method}, Target features: {n_features}")
+        
+        from .feature_selection import UFCFeatureSelector
+        feature_selector = UFCFeatureSelector(
+            selection_method=feature_selection_method,
+            n_features=n_features,
+            random_state=trainer.random_state
+        )
+        
+        # Fit and transform training data
+        X_train = feature_selector.fit_transform(X_train, y_train)
+        X_test = feature_selector.transform(X_test)
+        
+        print(f"Feature selection complete: {X_train.shape[1]} features selected")
+        print(f"Feature reduction: {X.shape[1]} -> {X_train.shape[1]} "
+              f"({X_train.shape[1]/X.shape[1]:.1%})")
+        
+        # Store feature selector in trainer for later use
+        trainer.feature_selector = feature_selector
+        
+        # Display top selected features
+        selected_summary = feature_selector.get_selection_summary()
+        print(f"Top 10 selected features:")
+        for i, (feature, score) in enumerate(selected_summary['top_features'][:10], 1):
+            print(f"  {i:2d}. {feature}: {score:.4f}")
     
     # Store test data for later use
     trainer.X_test = X_test
@@ -500,19 +933,76 @@ def train_complete_pipeline(X: pd.DataFrame, y: pd.Series,
     # Save feature columns for later use
     trainer.feature_columns = X.columns.tolist()
     
+    # Fit probability calibration if enabled
+    if enable_calibration:
+        print("\n" + "="*60)
+        print("📊 PROBABILITY CALIBRATION")
+        print("="*60)
+        print(f"Method: {calibration_method}")
+        
+        calibration_results = trainer.fit_probability_calibration(X_train, y_train)
+        
+        # Display calibration summary
+        print("\nCalibration Results:")
+        for model_name, result in calibration_results.items():
+            if result['calibrated']:
+                print(f"  ✅ {model_name}: {result['method']} calibration applied")
+                print(f"     ECE improvement: {result['ece_improvement']:.4f}")
+                print(f"     Brier improvement: {result['brier_improvement']:.4f}")
+            else:
+                print(f"  ⚪ {model_name}: {result['reason']}")
+        
+        # Show calibration summary table
+        cal_summary = trainer.get_calibration_summary()
+        if not cal_summary.empty:
+            print(f"\nCalibration Summary:")
+            print(cal_summary.to_string(index=False))
+    
+    # Train stacking ensemble if requested
+    if enable_stacking:
+        print("\n" + "="*60)
+        print("🎯 STACKING ENSEMBLE TRAINING")
+        print("="*60)
+        
+        # Enable stacking ensemble
+        trainer.enable_stacking_ensemble(
+            cv_splits=5,
+            temporal_validation=True,
+            enable_optimization=True
+        )
+        
+        # Train stacking ensemble
+        trainer.train_stacking_ensemble(X_train, y_train)
+        
+        # Evaluate stacking ensemble
+        stacking_scores = trainer.evaluate_stacking_ensemble(X_test, y_test)
+        
+        print(f"Stacking ensemble complete!")
+        print(f"Meta-learner: {stacking_scores['meta_learner']}")
+        print(f"Stacking accuracy: {stacking_scores['stacking_accuracy']:.4f}")
+        print(f"Stacking AUC: {stacking_scores['stacking_auc']:.4f}")
+        print(f"OOF validation AUC: {stacking_scores['oof_validation_auc']:.4f}")
+    
     # Print ensemble summary if enabled
-    if enable_ensemble:
+    if enable_ensemble or enable_stacking:
         print("\n" + "="*60)
         print("🚀 ENSEMBLE TRAINING COMPLETE")
         print("="*60)
         print(f"Random Forest accuracy: {trainer.get_model_score('random_forest'):.4f}")
-        print(f"XGBoost accuracy: {trainer.get_model_score('xgboost'):.4f}")
+        if enable_ensemble:
+            print(f"XGBoost accuracy: {trainer.get_model_score('xgboost'):.4f}")
         
         if tune_hyperparameters:
             print(f"Tuned Random Forest accuracy: {trainer.get_model_score('random_forest_tuned'):.4f}")
-            print(f"Tuned XGBoost accuracy: {trainer.get_model_score('xgboost_tuned'):.4f}")
+            if enable_ensemble:
+                print(f"Tuned XGBoost accuracy: {trainer.get_model_score('xgboost_tuned'):.4f}")
         
-        print(f"Ensemble weights: {trainer.ensemble_weights}")
-        print("Ready for ensemble prediction!")
+        if enable_stacking:
+            stacking_summary = trainer.get_stacking_summary()
+            print(f"Stacking enabled: {stacking_summary.get('is_fitted', False)}")
+        else:
+            print(f"Ensemble weights: {trainer.ensemble_weights}")
+        
+        print("Ready for advanced ensemble prediction!")
     
     return trainer

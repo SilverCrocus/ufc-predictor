@@ -26,13 +26,13 @@ from pathlib import Path
 import time
 from contextlib import contextmanager
 
-from .thread_safe_bootstrap import (
+from ..utils.thread_safe_bootstrap import (
     ThreadSafeBootstrapSampler, 
     BootstrapConfig, 
     create_bootstrap_config,
     calculate_confidence_intervals
 )
-from .enhanced_error_handling import UFCPredictorError
+from ..utils.enhanced_error_handling import UFCPredictorError
 
 logger = logging.getLogger(__name__)
 

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import json
+from pathlib import Path
 from typing import Dict, List, Any, Tuple
 # Removed IPython dependency - using standard print output instead
 
@@ -9,7 +10,8 @@ from typing import Dict, List, Any, Tuple
 class UFCPredictor:
     """Class for making UFC fight predictions using trained models."""
     
-    def __init__(self, model_path: str = None, columns_path: str = None, fighters_data_path: str = None):
+    def __init__(self, model_path: str = None, columns_path: str = None, fighters_data_path: str = None,
+                 use_calibration: bool = True):
         """
         Initialize the predictor.
         
@@ -17,10 +19,13 @@ class UFCPredictor:
             model_path: Path to the trained model file
             columns_path: Path to the model columns JSON file
             fighters_data_path: Path to the fighters data CSV file
+            use_calibration: Whether to use calibrated probabilities if available
         """
         self.model = None
         self.model_columns = None
         self.fighters_data = None
+        self.calibrator = None
+        self.use_calibration = use_calibration
         
         if model_path:
             self.load_model(model_path)
@@ -33,6 +38,19 @@ class UFCPredictor:
         """Load a trained model from disk."""
         self.model = joblib.load(model_path)
         print(f"Model loaded from '{model_path}'")
+        
+        # Try to load associated calibrator
+        if self.use_calibration:
+            try:
+                from ..evaluation.calibration import UFCProbabilityCalibrator
+                calibrator_path = model_path.replace('.joblib', '_calibrator.joblib')
+                if Path(calibrator_path).exists():
+                    self.calibrator = UFCProbabilityCalibrator()
+                    self.calibrator.load_calibrators(calibrator_path)
+                    print(f"Calibrator loaded from '{calibrator_path}'")
+            except Exception as e:
+                print(f"Note: Could not load calibrator: {e}")
+                self.calibrator = None
     
     def load_columns(self, columns_path: str):
         """Load model feature columns from JSON file."""
@@ -100,8 +118,16 @@ class UFCPredictor:
         # Create prediction DataFrame with correct column order
         prediction_df = pd.DataFrame([single_fight_data]).reindex(columns=self.model_columns, fill_value=0)
         
-        # Get prediction probability
-        return self.model.predict_proba(prediction_df)[0][1]  # Probability of blue corner winning
+        # Get raw prediction probability
+        raw_prob = self.model.predict_proba(prediction_df)[0][1]  # Probability of blue corner winning
+        
+        # Apply calibration if available
+        if self.calibrator and self.use_calibration:
+            prob_df = pd.DataFrame({'prob_pred': [raw_prob]})
+            calibrated_probs = self.calibrator.apply_calibration(prob_df)
+            return calibrated_probs[0]
+        else:
+            return raw_prob
     
     def predict_fight_basic(self, fighter1_name: str, fighter2_name: str) -> Dict[str, Any]:
         """
