@@ -24,11 +24,18 @@ UFC Predictor is a machine learning system for predicting UFC fight outcomes and
 
 ### Model Training and Prediction
 ```bash
-# Complete pipeline (data processing + training + evaluation)
-python3 main.py --mode pipeline --tune
+# Complete pipeline with AUTOMATIC OPTIMIZATION (recommended)
+python3 main.py pipeline --tune
+# This now automatically:
+# 1. Trains standard and tuned models
+# 2. Creates optimized 32-feature model
+# 3. Saves to model/optimized/ for production use
+
+# Optimize existing model (if you already trained)
+python3 optimize_latest_model.py
 
 # Train models only (requires processed data)
-python3 main.py --mode train --tune
+python3 main.py train --tune
 
 # Single fight prediction
 python3 main.py --mode predict --fighter1 "Fighter Name" --fighter2 "Opponent Name"

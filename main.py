@@ -601,22 +601,23 @@ Examples:
                 print(f"\n✅ Detailed results exported to: {args.export}")
         
         elif args.command == 'pipeline':
-            print("\n🔄 Running complete pipeline...")
+            print("\n🔄 Running complete pipeline with auto-optimization...")
+            from src.ufc_predictor.pipelines.complete_training_pipeline import CompletePipeline
             
-            if not args.no_scrape:
-                print("  1. Scraping latest data...")
-                # Would implement scraping here
+            pipeline = CompletePipeline()
+            results = pipeline.run_complete_pipeline(
+                tune=args.tune,
+                optimize=True,  # Always optimize in pipeline mode
+                n_features=32   # Use 32 best features
+            )
             
-            print("  2. Processing features...")
-            # Would implement feature engineering here
-            
-            print("  3. Training models...")
-            # Would implement training here
-            
-            print("  4. Evaluating performance...")
-            # Would implement evaluation here
-            
-            print("\n✅ Pipeline complete!")
+            print("\n✅ Pipeline complete with automatic optimization!")
+            print(f"  • Standard model accuracy: {results['models']['standard']['accuracy']:.2%}")
+            print(f"  • Tuned model accuracy: {results['models']['tuned']['accuracy']:.2%}")
+            if 'optimized' in results:
+                print(f"  • Optimized model accuracy: {results['optimized']['accuracy']:.2%}")
+                print(f"  • Speed improvement: {results['optimized']['speed_gain']}")
+                print(f"\n📁 Optimized model ready at: model/optimized/ufc_model_optimized_latest.joblib")
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
