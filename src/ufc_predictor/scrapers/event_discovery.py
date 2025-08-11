@@ -295,93 +295,59 @@ class UFCEventDiscovery:
         """
         Determine if a fight belongs to a UFC event.
         
-        Since The Odds API returns all MMA events with sport_title='MMA',
-        we need to identify UFC events by analyzing fighter names and patterns.
+        The Odds API returns all MMA events with sport_title='MMA', so we need
+        to identify UFC events by analyzing the sport_title field specifically.
         """
+        # CRITICAL FIX: Check sport_title field for UFC identification
+        # The Odds API includes organization info in sport_title for MMA events
+        sport_title = fight_data.get('sport_title', '')
+        
+        # Primary check: sport_title should contain 'UFC' for UFC events
+        if 'UFC' in sport_title:
+            return True
+        
+        # Check fighter names against known UFC roster (strict list)
         home_team = fight_data.get('home_team', '').lower()
         away_team = fight_data.get('away_team', '').lower()
         
-        # List of known UFC fighters (active and recent)
-        # This is a heuristic approach - in a production system, you'd maintain
-        # a comprehensive database of UFC fighters
-        ufc_fighters = {
-            # Current champions and top contenders
-            'jon jones', 'stipe miocic', 'tom aspinall', 'ciryl gane',
-            'islam makhachev', 'arman tsarukyan', 'dustin poirier',
-            'leon edwards', 'belal muhammad', 'khamzat chimaev', 'shavkat rakhmonov',
-            'kamaru usman', 'colby covington', 'gilbert burns',
-            'dricus du plessis', 'israel adesanya', 'sean strickland', 'alex pereira',
-            'robert whittaker', 'paulo costa', 'marvin vettori',
-            'alex pantoja', 'brandon moreno', 'deiveson figueiredo',
-            'aljamain sterling', 'sean omalley', 'merab dvalishvili', 'cory sandhagen',
-            'alexander volkanovski', 'ilia topuria', 'max holloway', 'josh emmett',
-            'amanda nunes', 'julianna pena', 'raquel pennington',
-            'zhang weili', 'rose namajunas', 'joanna jedrzejczyk',
-            'valentina shevchenko', 'alexa grasso', 'lauren murphy',
+        # Strict list of confirmed current UFC fighters (main card level only)
+        confirmed_ufc_fighters = {
+            # Current champions
+            'jon jones', 'islam makhachev', 'leon edwards', 'dricus du plessis',
+            'alex pereira', 'ilia topuria', 'sean omalley', 'alexandre pantoja',
+            'belal muhammad', 'tom aspinall',
             
-            # Other active UFC fighters
-            'conor mcgregor', 'nate diaz', 'jorge masvidal', 'nick diaz',
-            'michael bisping', 'yoel romero', 'uriah hall',
-            'derrick lewis', 'curtis blaydes', 'jairzinho rozenstruik',
-            'alistair overeem', 'junior dos santos', 'frank mir',
-            'charles oliveira', 'justin gaethje', 'michael chandler',
-            'rafael dos anjos', 'tony ferguson', 'donald cerrone',
-            'stephen thompson', 'neil magny', 'vicente luque',
-            'darren till', 'jorge masvidal', 'ben askren',
-            'yair rodriguez', 'calvin kattar', 'giga chikadze',
-            'jose aldo', 'petr yan', 'rob font',
-            'dominick cruz', 'henry cejudo', 'tj dillashaw',
+            # Top 5 contenders in each division (high-profile only)
+            'stipe miocic', 'ciryl gane', 'alexander volkanovski', 'max holloway',
+            'justin gaethje', 'charles oliveira', 'dustin poirier', 'arman tsarukyan',
+            'khamzat chimaev', 'shavkat rakhmonov', 'colby covington', 'kamaru usman',
+            'gilbert burns', 'stephen thompson', 'israel adesanya', 'robert whittaker',
+            'sean strickland', 'jared cannonier', 'paulo costa', 'marvin vettori',
+            'merab dvalishvili', 'cory sandhagen', 'petr yan', 'aljamain sterling',
+            'jose aldo', 'deiveson figueiredo', 'brandon moreno', 'kai kara-france',
             
-            # Add more as needed...
-            'chase hooper', 'alex hernandez', 'nursultan ruziboev', 'bryan battle',
-            'king green', 'carlos diego ferreira', 'edson barboza', 'drakkar klose',
-            'gerald meerschaert', 'michal oleksiejczuk', 'tatiana suarez',
-            'amanda lemos', 'claudio puelles', 'joaquim silva', 'diego lopes',
-            'jean silva', 'dusko todorovic', 'jose daniel medina', 'jared gordon',
-            'rafa garcia'
+            # Current women's champions and contenders
+            'zhang weili', 'tatiana suarez', 'rose namajunas', 'amanda lemos',
+            'valentina shevchenko', 'alexa grasso', 'katlyn cerminara', 'erin blanchfield'
         }
         
-        # Check if either fighter is in our UFC fighter list
-        if home_team in ufc_fighters or away_team in ufc_fighters:
+        # Check if either fighter is a confirmed UFC fighter
+        if home_team in confirmed_ufc_fighters or away_team in confirmed_ufc_fighters:
             return True
         
-        # Additional heuristics for UFC identification:
-        
-        # 1. Check for UFC in fighter names (rare but possible)
-        fight_text = f"{home_team} {away_team}"
-        if 'ufc' in fight_text:
-            return True
-        
-        # 2. Check event timing - UFC events typically happen on Saturdays
-        # and have multiple fights
-        commence_time = fight_data.get('commence_time', '')
-        if commence_time:
-            try:
-                event_date = datetime.fromisoformat(commence_time.replace('Z', '+00:00'))
-                is_saturday = event_date.weekday() == 5  # Saturday = 5
-                
-                # If it's a Saturday MMA event, it's likely UFC
-                if is_saturday:
-                    return True
-            except:
-                pass
-        
-        # 3. Exclude known non-UFC organizations by fighter patterns
+        # Exclude known non-UFC organizations by common indicators
+        fight_text = f"{home_team} {away_team}".lower()
         non_ufc_indicators = [
             'pfl', 'bellator', 'one championship', 'cage warriors',
-            'invicta', 'rizin', 'road fc', 'ksw'
+            'invicta', 'rizin', 'road fc', 'ksw', 'bkfc'
         ]
         
         for indicator in non_ufc_indicators:
             if indicator in fight_text:
                 return False
         
-        # Default: if we can't clearly identify it as non-UFC and it's MMA,
-        # err on the side of including it (better to include too many than miss UFC events)
-        sport_title = fight_data.get('sport_title', '').lower()
-        if 'mma' in sport_title:
-            return True
-        
+        # STRICT DEFAULT: If we can't confirm it's UFC, it's not UFC
+        # This prevents random MMA events from being included
         return False
     
     def _generate_event_name(self, date: datetime, fights: List[str]) -> str:
