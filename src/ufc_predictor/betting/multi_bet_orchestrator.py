@@ -122,22 +122,24 @@ class MultiBetOrchestrator:
         return {
             'selection': {
                 'singles': {
-                    'ev_min': 0.05,
-                    'ev_max': 0.15,
-                    'market_gap_min': 0.05,
-                    'confidence_min': 0.60,
-                    'max_exposure': 0.10
+                    'ev_min': 0.01,          # 1% minimum EV
+                    'ev_max': 0.15,          # 15% maximum EV (proven sweet spot)
+                    'odds_min': 1.40,        # Minimum decimal odds (avoid heavy favorites)
+                    'odds_max': 5.00,        # Maximum decimal odds (avoid longshots)
+                    'market_gap_min': 0.02,  # 2% minimum market gap
+                    'confidence_min': 0.50,  # 50% minimum confidence
+                    'max_exposure': 0.10     # 10% max bankroll exposure
                 },
                 'parlays': {
-                    'ev_min': 0.02,
-                    'market_gap_min': 0.03,
-                    'confidence_min': 0.55,
-                    'max_legs': 2,
-                    'max_parlays': 2,
-                    'max_exposure': 0.015
+                    'ev_min': 0.03,          # 3% minimum EV per leg
+                    'market_gap_min': 0.03,  # 3% minimum market gap
+                    'confidence_min': 0.55,  # 55% minimum confidence
+                    'max_legs': 3,           # Maximum 3 legs
+                    'max_parlays': 2,        # Maximum 2 parlays per card
+                    'max_exposure': 0.0025   # 0.25% max exposure for parlays
                 },
                 'activation': {
-                    'min_singles_threshold': 2
+                    'min_singles_threshold': 2  # Activate parlays when singles < 2
                 }
             },
             'correlation_sources': {
@@ -153,10 +155,12 @@ class MultiBetOrchestrator:
             },
             'parlay': {
                 'parlay_limits': {
-                    'max_legs': 2,
+                    'max_legs': 3,
                     'max_parlays': 2,
-                    'max_parlay_exposure': 0.015,
-                    'max_single_parlay': 0.005
+                    'max_parlay_exposure': 0.0025,
+                    'max_single_parlay': 0.0025,
+                    'stake_min': 0.001,      # 0.1% of bankroll minimum
+                    'stake_max': 0.0025      # 0.25% of bankroll maximum
                 },
                 'correlation': {
                     'max_allowed': 0.40,
@@ -316,8 +320,8 @@ class MultiBetOrchestrator:
         return selected
     
     def _calculate_single_stake(self, single: BettingOpportunity, bankroll: float) -> float:
-        """Calculate stake for a single bet using conservative Kelly."""
-        # Pessimistic Kelly calculation
+        """Calculate stake using proven formula: min(max(0.25×Kelly, 0.25% BR), 1% BR)."""
+        # Calculate raw Kelly
         prob = single.adjusted_prob
         odds = single.odds
         
@@ -326,24 +330,21 @@ class MultiBetOrchestrator:
             return 0
         
         kelly_full = edge / (odds - 1)
-        kelly_quarter = kelly_full * 0.25  # Quarter Kelly
-        
-        # Apply confidence scaling
-        confidence_factor = 0.5 + (single.confidence * 0.5)
-        kelly_adjusted = kelly_quarter * confidence_factor
-        
-        # Calculate stake
-        stake = bankroll * kelly_adjusted
-        
-        # Apply limits
-        max_single = bankroll * self.config['selection']['singles']['max_exposure']
-        stake = min(stake, max_single)
-        
-        # Minimum threshold
-        if stake < bankroll * 0.005:  # 0.5% minimum
+        if kelly_full <= 0:
             return 0
         
-        return stake
+        # Apply proven formula: min(max(0.25×Kelly, 0.25% BR), 1% BR)
+        kelly_quarter = kelly_full * 0.25
+        kelly_stake = kelly_quarter * bankroll
+        
+        min_stake = bankroll * 0.0025  # 0.25% of bankroll
+        max_stake = bankroll * 0.01    # 1% of bankroll
+        
+        # Apply min and max bounds
+        stake = max(kelly_stake, min_stake)
+        stake = min(stake, max_stake)
+        
+        return round(stake, 2)
     
     def _optimize_complete_portfolio(self,
                                     singles: List[BettingOpportunity],

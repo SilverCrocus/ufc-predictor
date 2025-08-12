@@ -96,10 +96,12 @@ class ParlayBuilder:
         """Default configuration implementing multi-bet plan specifications."""
         return {
             'parlay_limits': {
-                'max_legs': 2,              # Maximum legs per parlay
+                'max_legs': 3,              # Maximum legs per parlay (proven limit)
                 'max_parlays': 2,           # Maximum parlays per card
-                'max_parlay_exposure': 0.015,  # 1.5% total parlay exposure
-                'max_single_parlay': 0.005     # 0.5% per individual parlay
+                'max_parlay_exposure': 0.0025,  # 0.25% total parlay exposure
+                'max_single_parlay': 0.0025,    # 0.25% per individual parlay (max)
+                'stake_min': 0.001,         # 0.1% of bankroll (minimum)
+                'stake_max': 0.0025         # 0.25% of bankroll (maximum)
             },
             'correlation': {
                 'max_allowed': 0.40,        # Maximum correlation allowed
@@ -119,8 +121,8 @@ class ParlayBuilder:
             },
             'selection': {
                 'min_combined_ev': 0.08,     # 8% minimum combined EV
-                'ev_min': 0.02,              # 2% minimum individual leg EV (matching orchestrator)
-                'confidence_min': 0.55,      # Minimum confidence per leg (matching orchestrator)
+                'ev_min': 0.03,              # 3% minimum individual leg EV (proven threshold)
+                'confidence_min': 0.55,      # Minimum confidence per leg
                 'diversification_bonus': 0.02 # Bonus for cross-division parlays
             },
             'risk_management': {
@@ -386,23 +388,25 @@ class ParlayBuilder:
                         bankroll: float,
                         combined_ev: float,
                         correlation: float) -> float:
-        """Calculate final stake amount with all caps and adjustments."""
-        # Base Kelly stake
-        base_stake = bankroll * kelly_fraction
+        """Calculate final stake using fixed 0.1-0.25% range based on EV and correlation."""
+        # Fixed stake range: 0.1% to 0.25% of bankroll
+        min_stake = bankroll * self.config['parlay_limits'].get('stake_min', 0.001)  # 0.1%
+        max_stake = bankroll * self.config['parlay_limits'].get('stake_max', 0.0025)  # 0.25%
         
-        # Apply hard cap
-        hard_cap = bankroll * self.config['risk_management']['kelly_cap']
-        stake = min(base_stake, hard_cap)
+        # Scale within range based on combined EV (higher EV = higher stake)
+        # EV range typically 8% to 30% for parlays
+        ev_factor = min(max(combined_ev / 0.30, 0.0), 1.0)  # Normalize to 0-1
         
-        # Apply exposure scaling if needed
-        exposure_scaling = self.config['risk_management']['exposure_scaling']
+        # Apply correlation penalty (higher correlation = lower stake)
+        correlation_penalty = 1.0
         if correlation > self.config['correlation']['penalty_threshold']:
-            stake *= exposure_scaling
+            correlation_penalty = 0.8  # Reduce stake by 20% for high correlation
         
-        # Ensure minimum return threshold
-        min_return = stake * self.config['risk_management']['min_expected_return']
-        if stake * combined_ev < min_return:
-            stake = 0  # Don't bet if expected return too low
+        # Calculate stake within fixed range
+        stake = min_stake + (max_stake - min_stake) * ev_factor * correlation_penalty
+        
+        # Ensure within bounds
+        stake = max(min_stake, min(stake, max_stake))
         
         return round(stake, 2)
     

@@ -35,8 +35,8 @@ class BettingOpportunity:
     
     @property
     def adjusted_prob(self) -> float:
-        """Conservative probability adjustment (85% factor)."""
-        return self.model_prob * 0.85
+        """No calibration - use raw model probability."""
+        return self.model_prob
 
 
 class BettingSelector:
@@ -52,22 +52,24 @@ class BettingSelector:
         self.config = config or self._default_config()
         
     def _default_config(self) -> Dict:
-        """Default configuration matching the multi-bet plan."""
+        """Default configuration based on proven historical performance."""
         return {
             'singles': {
-                'ev_min': 0.05,          # 5% minimum EV
-                'ev_max': 0.15,          # 15% maximum EV (proven range)
-                'market_gap_min': 0.05,  # 5% minimum market gap
-                'confidence_min': 0.60,  # 60% minimum confidence
+                'ev_min': 0.01,          # 1% minimum EV
+                'ev_max': 0.15,          # 15% maximum EV (proven sweet spot)
+                'odds_min': 1.40,        # Minimum decimal odds (avoid heavy favorites)
+                'odds_max': 5.00,        # Maximum decimal odds (avoid longshots)
+                'market_gap_min': 0.02,  # 2% minimum market gap
+                'confidence_min': 0.50,  # 50% minimum confidence
                 'max_exposure': 0.10     # 10% max bankroll exposure
             },
             'parlays': {
-                'ev_min': 0.02,          # 2% minimum EV (relaxed)
-                'market_gap_min': 0.03,  # 3% minimum market gap (relaxed)
-                'confidence_min': 0.55,  # 55% minimum confidence (relaxed)
-                'max_legs': 2,           # Maximum 2 legs
+                'ev_min': 0.03,          # 3% minimum EV per leg
+                'market_gap_min': 0.03,  # 3% minimum market gap
+                'confidence_min': 0.55,  # 55% minimum confidence
+                'max_legs': 3,           # Maximum 3 legs
                 'max_parlays': 2,        # Maximum 2 parlays per card
-                'max_exposure': 0.015    # 1.5% max exposure for parlays
+                'max_exposure': 0.0025   # 0.25% max exposure for parlays
             },
             'activation': {
                 'min_singles_threshold': 2  # Activate parlays when singles < 2
@@ -172,18 +174,25 @@ class BettingSelector:
         return opportunities
     
     def _filter_singles(self, opportunities: List[BettingOpportunity]) -> List[BettingOpportunity]:
-        """Apply strict filters for single bet selection."""
+        """Apply strict filters for single bet selection including odds range."""
         config = self.config['singles']
         filtered = []
         
         for opp in opportunities:
-            # Apply all filters
+            # Apply all filters including odds range
             if (config['ev_min'] <= opp.ev <= config['ev_max'] and
+                config['odds_min'] <= opp.odds <= config['odds_max'] and
                 opp.market_gap >= config['market_gap_min'] and
                 opp.confidence >= config['confidence_min']):
                 
                 filtered.append(opp)
-                logger.debug(f"Single qualified: {opp.fighter} (EV: {opp.ev:.1%})")
+                logger.debug(f"Single qualified: {opp.fighter} (EV: {opp.ev:.1%}, Odds: {opp.odds:.2f})")
+            elif opp.ev > config['ev_max']:
+                logger.debug(f"Rejected (EV too high): {opp.fighter} (EV: {opp.ev:.1%})")
+            elif opp.odds > config['odds_max']:
+                logger.debug(f"Rejected (odds too high): {opp.fighter} (Odds: {opp.odds:.2f})")
+            elif opp.odds < config['odds_min']:
+                logger.debug(f"Rejected (odds too low): {opp.fighter} (Odds: {opp.odds:.2f})")
         
         # Sort by EV descending
         filtered.sort(key=lambda x: x.ev, reverse=True)
@@ -194,16 +203,18 @@ class BettingSelector:
     def _filter_parlay_pool(self, opportunities: List[BettingOpportunity]) -> List[BettingOpportunity]:
         """Apply relaxed filters for parlay pool selection."""
         config = self.config['parlays']
+        singles_config = self.config['singles']  # Use same odds limits as singles
         filtered = []
         
         for opp in opportunities:
-            # Apply relaxed filters
+            # Apply relaxed filters including odds range check
             if (opp.ev >= config['ev_min'] and
                 opp.market_gap >= config['market_gap_min'] and
-                opp.confidence >= config['confidence_min']):
+                opp.confidence >= config['confidence_min'] and
+                singles_config['odds_min'] <= opp.odds <= singles_config['odds_max']):
                 
                 filtered.append(opp)
-                logger.debug(f"Parlay pool: {opp.fighter} (EV: {opp.ev:.1%})")
+                logger.debug(f"Parlay pool: {opp.fighter} (EV: {opp.ev:.1%}, Odds: {opp.odds:.2f})")
         
         logger.info(f"Parlay pool: {len(opportunities)} → {len(filtered)}")
         return filtered
