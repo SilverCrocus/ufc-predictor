@@ -1,1 +1,0 @@
-prediction_id,date_predicted,event,fight_date,fighter1,fighter2,model_prob_raw,model_prob_calibrated,predicted_winner,confidence_level,method_prediction,odds_fighter1,odds_fighter2,market_favorite,edge_raw,edge_calibrated,bet_placed,bet_amount,actual_winner,actual_method,prediction_correct,profit_loss,notes

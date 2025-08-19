@@ -1,0 +1,213 @@
+{
+  "annual_returns": {
+    "annualized_roi": 18.79623804159083,
+    "benchmarks": {
+      "S&P 500 (Long-term)": 10.0,
+      "S&P 500 (2021-2025)": 8.5,
+      "Sports Betting Sharp": 3.0,
+      "Sports Betting Average": -5.0,
+      "Risk-free Rate": 4.0,
+      "Real Estate": 6.0,
+      "Crypto (High Risk)": 15.0,
+      "Professional Poker": 12.0
+    },
+    "outperformance": {
+      "S&P 500 (Long-term)": 8.79623804159083,
+      "S&P 500 (2021-2025)": 10.29623804159083,
+      "Sports Betting Sharp": 15.79623804159083,
+      "Sports Betting Average": 23.79623804159083,
+      "Risk-free Rate": 14.79623804159083,
+      "Real Estate": 12.79623804159083,
+      "Crypto (High Risk)": 3.7962380415908292,
+      "Professional Poker": 6.796238041590829
+    }
+  },
+  "sharpe_metrics": {
+    "sharpe_ratio": 0.5093535937226218,
+    "annual_return": 24.21333333333333,
+    "annual_volatility": 39.68428530287525,
+    "risk_free_rate": 4.0,
+    "excess_return": 20.21333333333333
+  },
+  "drawdown_analysis": {
+    "estimated_max_drawdown": 25,
+    "expected_longest_losing_streak": 11,
+    "worst_case_losing_streak": 17,
+    "statistical_drawdown_99pct": 25.79870996774839
+  },
+  "frequency_analysis": {
+    "bets_per_year": 965.0666666666667,
+    "bets_per_month": 80.42222222222222,
+    "bets_per_event": 21.445925925925927,
+    "bet_selectivity": 178.71604938271605,
+    "estimated_total_events": 168,
+    "estimated_total_fights": 2025
+  },
+  "edge_analysis": {
+    "minimum_edge_threshold": 5.0,
+    "estimated_avg_edge": 90.79999999999997,
+    "avg_winning_odds": 3.854545454545454,
+    "edge_efficiency": 24.21333333333333,
+    "kelly_efficiency": 0.25,
+    "selectivity_impact": "Betting on ~178.7% of available fights"
+  },
+  "bottlenecks": {
+    "accuracy_scenarios": {
+      "accuracy_52pct": {
+        "description": "Improve model accuracy to 52%",
+        "estimated_new_win_rate": 50.11875,
+        "potential_roi_improvement": 1.2374999999999972
+      },
+      "accuracy_53pct": {
+        "description": "Improve model accuracy to 53%",
+        "estimated_new_win_rate": 50.8921875,
+        "potential_roi_improvement": 2.784374999999997
+      },
+      "accuracy_54pct": {
+        "description": "Improve model accuracy to 54%",
+        "estimated_new_win_rate": 51.665625,
+        "potential_roi_improvement": 4.331249999999997
+      },
+      "accuracy_55pct": {
+        "description": "Improve model accuracy to 55%",
+        "estimated_new_win_rate": 52.4390625,
+        "potential_roi_improvement": 5.878124999999997
+      }
+    },
+    "edge_scenarios": {
+      "edge_3pct": {
+        "description": "Change edge threshold to 3%",
+        "bet_volume_change": 82.21188003905088,
+        "risk_reward_tradeoff": "Lower edge = more bets but lower quality"
+      },
+      "edge_4pct": {
+        "description": "Change edge threshold to 4%",
+        "bet_volume_change": 34.98588075760032,
+        "risk_reward_tradeoff": "Lower edge = more bets but lower quality"
+      },
+      "edge_6pct": {
+        "description": "Change edge threshold to 6%",
+        "bet_volume_change": -25.91817793182821,
+        "risk_reward_tradeoff": "Lower edge = more bets but lower quality"
+      },
+      "edge_7pct": {
+        "description": "Change edge threshold to 7%",
+        "bet_volume_change": -45.11883639059736,
+        "risk_reward_tradeoff": "Lower edge = more bets but lower quality"
+      }
+    },
+    "staking_scenarios": {
+      "full_kelly": {
+        "description": "Full Kelly instead of 1/4 Kelly",
+        "multiplier": 4,
+        "risk": "Much higher volatility and drawdown risk"
+      },
+      "half_kelly": {
+        "description": "Half Kelly instead of 1/4 Kelly",
+        "multiplier": 2,
+        "risk": "Moderate increase in volatility"
+      },
+      "compound": {
+        "description": "Compound betting instead of flat betting",
+        "potential_improvement": "Significant long-term growth",
+        "risk": "Higher drawdown periods"
+      }
+    },
+    "primary_bottleneck": "Model accuracy (51.2% vs. break-even ~52.5%)",
+    "secondary_bottleneck": "Conservative Kelly fraction limiting growth"
+  },
+  "recommendations": {
+    "immediate_actions": [
+      {
+        "action": "Increase model accuracy to 53-54%",
+        "method": "Feature engineering: Add ELO ratings, recent form, matchup-specific features",
+        "expected_impact": "+15-25% ROI improvement",
+        "implementation": "High priority - directly impacts profitability"
+      },
+      {
+        "action": "Optimize feature selection",
+        "method": "Use recursive feature elimination, correlation analysis",
+        "expected_impact": "Reduce noise, improve signal",
+        "implementation": "Medium effort - existing framework"
+      },
+      {
+        "action": "Implement ensemble methods",
+        "method": "Combine multiple models (RF, XGBoost, Neural Networks)",
+        "expected_impact": "+1-2% accuracy improvement",
+        "implementation": "Medium effort - framework exists"
+      }
+    ],
+    "staking_improvements": [
+      {
+        "action": "Graduate to Half-Kelly staking",
+        "method": "Increase Kelly fraction from 0.25 to 0.5",
+        "expected_impact": "~2x growth rate (with 2x volatility)",
+        "implementation": "Low effort - parameter change",
+        "risk": "Monitor drawdowns closely"
+      },
+      {
+        "action": "Implement compound betting",
+        "method": "Bet percentage of current bankroll, not initial",
+        "expected_impact": "Exponential growth potential",
+        "implementation": "Medium effort - track bankroll dynamically",
+        "risk": "Higher volatility during losing streaks"
+      },
+      {
+        "action": "Dynamic bet sizing based on confidence",
+        "method": "Scale bet size with prediction confidence",
+        "expected_impact": "+10-20% efficiency improvement",
+        "implementation": "Medium effort - confidence calibration needed"
+      }
+    ],
+    "advanced_strategies": [
+      {
+        "action": "Lower edge threshold selectively",
+        "method": "Use 3-4% edge for high-confidence predictions",
+        "expected_impact": "+50% more betting opportunities",
+        "implementation": "Requires confidence calibration"
+      },
+      {
+        "action": "Multi-bet analysis",
+        "method": "Identify profitable parlay combinations",
+        "expected_impact": "Higher variance, potentially higher returns",
+        "implementation": "Complex - correlation analysis needed"
+      },
+      {
+        "action": "Market timing",
+        "method": "Track line movements, bet at optimal times",
+        "expected_impact": "+5-10% edge improvement",
+        "implementation": "Requires real-time odds monitoring"
+      }
+    ],
+    "risk_management": [
+      {
+        "action": "Implement stop-loss at 20% drawdown",
+        "method": "Temporarily reduce bet sizes after large losses",
+        "expected_impact": "Protect against catastrophic losses",
+        "implementation": "Low effort - rule-based"
+      },
+      {
+        "action": "Diversify across different bet types",
+        "method": "Add method betting (KO/Decision) if profitable",
+        "expected_impact": "Reduce correlation, smooth returns",
+        "implementation": "Requires separate model development"
+      }
+    ],
+    "priority_ranking": [
+      "1. Improve model accuracy (biggest impact)",
+      "2. Implement compound betting (exponential growth)",
+      "3. Graduate to Half-Kelly (2x growth rate)",
+      "4. Add ensemble methods (reliability)",
+      "5. Optimize edge threshold (more opportunities)"
+    ]
+  },
+  "theoretical_limits": {
+    "theoretical_max_annual_roi": 104.00000000000003,
+    "theoretical_max_accuracy": 55,
+    "market_efficiency_limit": 10,
+    "current_vs_theoretical": {
+      "accuracy_gap": 3.799999999999997,
+      "roi_gap": 79.78666666666669
+    }
+  }
+}
