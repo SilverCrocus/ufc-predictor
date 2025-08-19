@@ -81,6 +81,12 @@ Examples:
     pipeline_parser = subparsers.add_parser('pipeline', help='Run complete pipeline')
     pipeline_parser.add_argument('--tune', action='store_true', help='Tune hyperparameters')
     pipeline_parser.add_argument('--no-scrape', action='store_true', help='Skip data scraping')
+    pipeline_parser.add_argument('--temporal-split', action='store_true', default=True,
+                                help='Use temporal split for evaluation (default: True)')
+    pipeline_parser.add_argument('--random-split', action='store_true',
+                                help='Use random split instead of temporal (not recommended)')
+    pipeline_parser.add_argument('--production', action='store_true',
+                                help='Production mode: train on ALL data (no test set)')
     
     # Info command
     info_parser = subparsers.add_parser('info', help='Show model information')
@@ -604,7 +610,21 @@ Examples:
             print("\n🔄 Running complete pipeline with auto-optimization...")
             from src.ufc_predictor.pipelines.complete_training_pipeline import CompletePipeline
             
-            pipeline = CompletePipeline()
+            # Determine split strategy
+            use_temporal = not args.random_split  # Default to temporal unless random is specified
+            production_mode = args.production
+            
+            if production_mode:
+                print("🚀 PRODUCTION MODE: Training on ALL available data")
+            elif use_temporal:
+                print("⏰ Using TEMPORAL SPLIT for realistic evaluation")
+            else:
+                print("🎲 Using RANDOM SPLIT (not recommended for time-series data)")
+            
+            pipeline = CompletePipeline(
+                use_temporal_split=use_temporal,
+                production_mode=production_mode
+            )
             results = pipeline.run_complete_pipeline(
                 tune=args.tune,
                 optimize=True,  # Always optimize in pipeline mode

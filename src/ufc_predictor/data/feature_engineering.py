@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 from typing import Tuple
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def clean_object_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -129,17 +133,81 @@ def engineer_features_final(raw_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def create_differential_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_elo_features(df: pd.DataFrame, elo_ratings_path: Path = None) -> pd.DataFrame:
+    """
+    Add ELO rating features to the dataset.
+    
+    Args:
+        df: DataFrame with fighter names
+        elo_ratings_path: Path to ELO ratings CSV file
+        
+    Returns:
+        DataFrame with added ELO features
+    """
+    if elo_ratings_path is None:
+        # Try to find ELO ratings file
+        project_root = Path(__file__).parent.parent.parent.parent
+        elo_ratings_path = project_root / "ufc_fighter_elo_ratings.csv"
+    
+    if not elo_ratings_path.exists():
+        logger.warning(f"ELO ratings file not found at {elo_ratings_path}")
+        return df
+    
+    try:
+        # Load ELO ratings
+        elo_df = pd.read_csv(elo_ratings_path)
+        logger.info(f"Loaded ELO ratings for {len(elo_df)} fighters")
+        
+        # Select key ELO features
+        elo_features = [
+            'Name',
+            'elo_overall_rating', 'elo_striking_rating', 'elo_grappling_rating', 
+            'elo_cardio_rating', 'elo_rating_deviation',
+            'elo_total_fights', 'elo_ufc_fights',
+            'elo_current_streak', 'elo_win_percentage', 'elo_finish_percentage'
+        ]
+        
+        # Filter to available columns
+        available_features = [col for col in elo_features if col in elo_df.columns]
+        elo_df_subset = elo_df[available_features]
+        
+        # Merge ELO features for blue corner
+        if 'blue_Name' in df.columns:
+            blue_elo = elo_df_subset.add_prefix('blue_').rename(columns={'blue_Name': 'blue_Name_match'})
+            df = pd.merge(df, blue_elo, left_on='blue_Name', right_on='blue_Name_match', how='left')
+            df.drop(columns=['blue_Name_match'], inplace=True, errors='ignore')
+        
+        # Merge ELO features for red corner
+        if 'red_Name' in df.columns:
+            red_elo = elo_df_subset.add_prefix('red_').rename(columns={'red_Name': 'red_Name_match'})
+            df = pd.merge(df, red_elo, left_on='red_Name', right_on='red_Name_match', how='left')
+            df.drop(columns=['red_Name_match'], inplace=True, errors='ignore')
+        
+        logger.info("Successfully added ELO features to dataset")
+        
+    except Exception as e:
+        logger.warning(f"Failed to add ELO features: {e}")
+    
+    return df
+
+
+def create_differential_features(df: pd.DataFrame, include_elo: bool = True) -> pd.DataFrame:
     """
     Create differential features between blue and red corner fighters.
     
     Args:
         df: DataFrame with blue_ and red_ prefixed columns
+        include_elo: Whether to include ELO differential features
         
     Returns:
         DataFrame with additional differential features
     """
     df_features = df.copy()
+    
+    # Add ELO features if requested
+    if include_elo:
+        df_features = add_elo_features(df_features)
+    
     blue_cols = [col for col in df_features.columns 
                  if col.startswith('blue_') and 'url' not in col and 'Name' not in col]
     
@@ -149,6 +217,22 @@ def create_differential_features(df: pd.DataFrame) -> pd.DataFrame:
             base_name = blue_col.replace('blue_', '')
             diff_col_name = base_name.lower().replace(' ', '_').replace('.', '') + '_diff'
             df_features[diff_col_name] = df_features[blue_col] - df_features[red_col]
+    
+    # Add ELO-specific differentials if available
+    if include_elo and 'blue_elo_overall_rating' in df_features.columns:
+        # Create key ELO differentials
+        elo_diff_features = {
+            'elo_rating_diff': ('blue_elo_overall_rating', 'red_elo_overall_rating'),
+            'elo_striking_diff': ('blue_elo_striking_rating', 'red_elo_striking_rating'),
+            'elo_grappling_diff': ('blue_elo_grappling_rating', 'red_elo_grappling_rating'),
+            'elo_uncertainty_diff': ('blue_elo_rating_deviation', 'red_elo_rating_deviation'),
+            'elo_experience_diff': ('blue_elo_total_fights', 'red_elo_total_fights'),
+            'elo_momentum_diff': ('blue_elo_current_streak', 'red_elo_current_streak')
+        }
+        
+        for feat_name, (blue_col, red_col) in elo_diff_features.items():
+            if blue_col in df_features.columns and red_col in df_features.columns:
+                df_features[feat_name] = df_features[blue_col] - df_features[red_col]
     
     return df_features
 

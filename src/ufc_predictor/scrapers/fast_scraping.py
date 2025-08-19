@@ -19,6 +19,26 @@ from typing import List, Dict, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 import threading
+import sys
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+
+# Import ELO system for automatic updates
+try:
+    from src.ufc_predictor.utils.ufc_elo_system import UFCELOSystem
+    from src.ufc_predictor.utils.elo_historical_processor import UFCELOHistoricalProcessor
+    ELO_AVAILABLE = True
+except ImportError:
+    try:
+        # Alternative import path
+        from ufc_predictor.utils.ufc_elo_system import UFCELOSystem
+        from ufc_predictor.utils.elo_historical_processor import UFCELOHistoricalProcessor
+        ELO_AVAILABLE = True
+    except ImportError:
+        print("⚠️ ELO system not available - ELO ratings will not be updated")
+        ELO_AVAILABLE = False
 
 # --- Configuration ---
 class FastScrapingConfig:
@@ -330,6 +350,45 @@ class FastUFCStatsScraper:
         print(f"✅ Feature engineering complete: {df.shape[0]} fighters, {df.shape[1]} features")
         return df
     
+    def update_elo_ratings(self, fights_df: pd.DataFrame) -> bool:
+        """Update ELO ratings based on newly scraped fight data"""
+        if not ELO_AVAILABLE:
+            print("⚠️ ELO system not available - skipping ELO update")
+            return False
+        
+        try:
+            print("🎯 Updating ELO ratings with latest fight results...")
+            
+            # Initialize ELO processor
+            project_root = Path(__file__).parent.parent.parent.parent
+            processor = UFCELOHistoricalProcessor(
+                data_dir=str(project_root / "data"),
+                output_dir=str(project_root)
+            )
+            
+            # Build ELO ratings from complete fight history
+            elo_system = processor.build_from_fight_history(fights_df)
+            
+            # Save updated ELO ratings
+            elo_ratings_path = project_root / "ufc_fighter_elo_ratings.csv"
+            processor.save_elo_ratings(elo_system, str(elo_ratings_path))
+            
+            # Get statistics
+            active_fighters = len([f for f in elo_system.fighters.values() if f.is_active])
+            total_fighters = len(elo_system.fighters)
+            
+            print(f"✅ ELO ratings updated successfully!")
+            print(f"   - Total fighters: {total_fighters}")
+            print(f"   - Active fighters: {active_fighters}")
+            print(f"   - Ratings saved to: {elo_ratings_path}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ ELO update failed: {e}")
+            print("   Continuing without ELO update...")
+            return False
+    
     def save_data(self, fighter_details: List[Dict], fight_histories: List[Dict], 
                   processed_fighters: pd.DataFrame) -> Dict[str, Path]:
         """Save data efficiently"""
@@ -371,6 +430,9 @@ class FastUFCStatsScraper:
         fighters_df.to_csv(main_fighters_path, index=False)
         fights_df.to_csv(main_fights_path, index=False)
         
+        # Update ELO ratings with new fight data
+        self.update_elo_ratings(fights_df)
+        
         # Save metadata
         metadata = {
             'scrape_date': SNAPSHOT_DATE,
@@ -382,7 +444,8 @@ class FastUFCStatsScraper:
                 'max_threads': self.config.MAX_WORKER_THREADS,
                 'batch_size': self.config.BATCH_SIZE
             },
-            'files_created': [str(p.name) for p in files_saved.values()]
+            'files_created': [str(p.name) for p in files_saved.values()],
+            'elo_updated': ELO_AVAILABLE
         }
         
         metadata_path = version_dir / f'scrape_metadata_{SNAPSHOT_DATE}.json'

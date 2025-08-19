@@ -24,6 +24,14 @@ from src.ufc_predictor.models.model_training import UFCModelTrainer
 from src.ufc_predictor.models.feature_selection import UFCFeatureSelector
 from src.ufc_predictor.data.feature_engineering import prepare_modeling_data
 
+# Import ELO system for automatic updates
+try:
+    from src.ufc_predictor.utils.ufc_elo_system import UFCELOSystem
+    from src.ufc_predictor.utils.elo_historical_processor import UFCELOHistoricalProcessor
+    ELO_AVAILABLE = True
+except ImportError:
+    ELO_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,12 +40,21 @@ logger = logging.getLogger(__name__)
 class CompletePipeline:
     """Complete training pipeline with automatic optimization."""
     
-    def __init__(self, base_dir: Path = None):
-        """Initialize the pipeline."""
+    def __init__(self, base_dir: Path = None, use_temporal_split: bool = True, 
+                 production_mode: bool = False):
+        """Initialize the pipeline.
+        
+        Args:
+            base_dir: Base directory for the project
+            use_temporal_split: Whether to use temporal splitting for evaluation
+            production_mode: If True, trains on all data (no holdout for testing)
+        """
         self.base_dir = base_dir or project_root
         self.model_dir = self.base_dir / 'model'
         self.data_dir = self.base_dir / 'data'
         self.optimized_dir = self.model_dir / 'optimized'
+        self.use_temporal_split = use_temporal_split
+        self.production_mode = production_mode
         
         # Create directories if they don't exist
         self.optimized_dir.mkdir(parents=True, exist_ok=True)
@@ -47,11 +64,62 @@ class CompletePipeline:
         self.training_dir = self.model_dir / f'training_{self.timestamp}'
         self.training_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"Pipeline initialized. Training directory: {self.training_dir}")
+        mode_str = "PRODUCTION" if production_mode else "EVALUATION"
+        split_str = "temporal" if use_temporal_split and not production_mode else "all data" if production_mode else "random"
+        logger.info(f"Pipeline initialized. Mode: {mode_str}, Split: {split_str}")
+        logger.info(f"Training directory: {self.training_dir}")
+    
+    def check_elo_ratings_status(self) -> bool:
+        """Check if ELO ratings exist and log their status."""
+        elo_ratings_path = self.base_dir / "ufc_fighter_elo_ratings.csv"
+        
+        if not elo_ratings_path.exists():
+            logger.warning("⚠️ ELO ratings file not found!")
+            logger.warning("   Run the fast scraper to generate ELO ratings:")
+            logger.warning("   python3 src/ufc_predictor/scrapers/fast_scraping.py")
+            return False
+        
+        try:
+            # Check when ELO ratings were last updated
+            import os
+            from datetime import datetime
+            
+            file_stats = os.stat(elo_ratings_path)
+            last_modified = datetime.fromtimestamp(file_stats.st_mtime)
+            days_old = (datetime.now() - last_modified).days
+            
+            # Load and check content
+            elo_df = pd.read_csv(elo_ratings_path)
+            
+            logger.info(f"✅ ELO ratings found:")
+            logger.info(f"   - File: {elo_ratings_path}")
+            logger.info(f"   - Last updated: {days_old} days ago")
+            logger.info(f"   - Contains: {len(elo_df)} fighters")
+            
+            if days_old > 7:
+                logger.warning("   ⚠️ ELO ratings may be stale (>7 days old)")
+                logger.warning("   Consider running the scraper for latest data:")
+                logger.warning("   python3 src/ufc_predictor/scrapers/fast_scraping.py")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error reading ELO ratings: {e}")
+            return False
     
     def load_and_prepare_data(self) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
         """Load and prepare data for training."""
         logger.info("Loading and preparing data...")
+        
+        # Check ELO ratings status (don't rebuild, just check and warn if needed)
+        self.check_elo_ratings_status()
+        
+        # Load raw fight data for temporal information
+        fights_path = self.data_dir / 'ufc_fights.csv'
+        if not fights_path.exists():
+            raise FileNotFoundError(f"No fight data found at {fights_path}")
+        
+        fights_df = pd.read_csv(fights_path)
         
         # Try to load existing processed data first
         processed_path = self.model_dir / 'ufc_fight_dataset_with_diffs.csv'
@@ -67,38 +135,141 @@ class CompletePipeline:
                     break
         
         if not processed_path.exists():
-            # Load raw data and process it
+            # Process raw data
             logger.info("Processing raw fight data...")
-            fights_path = self.data_dir / 'ufc_fights.csv'
-            if not fights_path.exists():
-                raise FileNotFoundError(f"No fight data found at {fights_path}")
-            
-            fights_df = pd.read_csv(fights_path)
             X, y = prepare_modeling_data(fights_df)
+            # Create data dataframe for consistency
+            data = pd.concat([X, y], axis=1)
+            data['Event'] = fights_df.get('Event', '')  # Add Event column if available
+            data['Date'] = fights_df.get('Date', '')    # Add Date column if available
         else:
             # Load processed data
             logger.info(f"Loading processed data from {processed_path}")
             data = pd.read_csv(processed_path)
             
-            # Separate features and target
-            target_col = 'Winner'
-            if target_col not in data.columns:
-                target_col = 'winner'  # Try lowercase
+            # Handle different target column names
+            if 'Winner' in data.columns:
+                target_col = 'Winner'
+                y = data[target_col]
+            elif 'winner' in data.columns:
+                target_col = 'winner'
+                y = data[target_col]
+            elif 'Outcome' in data.columns:
+                # Convert win/loss to binary
+                target_col = 'Outcome'
+                y = (data['Outcome'] == 'win').astype(int)
+            else:
+                raise ValueError(f"Could not find target column. Available columns: {data.columns.tolist()[:10]}...")
             
-            feature_cols = [col for col in data.columns 
-                          if col not in [target_col, 'Method', 'Round', 'Title_fight']]
+            # Exclude non-feature columns (including any string columns)
+            exclude_cols = [target_col, 'Outcome', 'Winner', 'winner', 'Method', 'Method_Cleaned', 
+                          'Round', 'Title_fight', 'Event', 'Date', 'Fighter', 'Opponent', 
+                          'fighter_url', 'opponent_url', 'blue_fighter_url', 'red_fighter_url', 
+                          'blue_Name', 'red_Name', 'Time']
             
-            X = data[feature_cols]
-            y = data[target_col]
+            # Get potential feature columns
+            feature_cols = [col for col in data.columns if col not in exclude_cols]
+            X_temp = data[feature_cols]
+            
+            # Keep only numeric columns
+            numeric_cols = X_temp.select_dtypes(include=['int64', 'float64', 'int32', 'float32', 'bool']).columns
+            X = data[numeric_cols]
         
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+        # Handle different splitting strategies
+        if self.production_mode:
+            # PRODUCTION MODE: Use ALL data for training (no test set)
+            logger.info("🚀 PRODUCTION MODE: Training on ALL available data")
+            X_train, y_train = X, y
+            X_test, y_test = X.iloc[:0], y.iloc[:0]  # Empty test set
+            logger.info(f"Training on all {len(X_train)} samples")
+            
+        elif self.use_temporal_split:
+            # EVALUATION MODE with temporal split
+            logger.info("⏰ Using TEMPORAL SPLIT for realistic evaluation")
+            
+            # Try to use dates from the original fights data for temporal ordering
+            temporal_split_successful = False
+            
+            try:
+                # Parse dates from original fight data
+                if 'Date' in fights_df.columns:
+                    fights_df['date'] = pd.to_datetime(fights_df['Date'], errors='coerce')
+                    
+                    # We need to align the processed data with the original dates
+                    # This is a simplified approach - just use the index order
+                    if len(X) == len(fights_df):
+                        # Data aligns with fights_df
+                        dates = fights_df['date']
+                        valid_dates = dates.notna()
+                        
+                        if valid_dates.sum() > 100:  # Need enough valid dates
+                            X_with_dates = X[valid_dates]
+                            y_with_dates = y[valid_dates]
+                            dates = dates[valid_dates]
+                            
+                            # Sort by date
+                            sorted_idx = dates.argsort()
+                            X_sorted = X_with_dates.iloc[sorted_idx]
+                            y_sorted = y_with_dates.iloc[sorted_idx]
+                            dates_sorted = dates.iloc[sorted_idx]
+                            
+                            # Use 80% for training, 20% for testing (temporal split)
+                            split_idx = int(len(X_sorted) * 0.8)
+                            
+                            X_train = X_sorted.iloc[:split_idx]
+                            X_test = X_sorted.iloc[split_idx:]
+                            y_train = y_sorted.iloc[:split_idx]
+                            y_test = y_sorted.iloc[split_idx:]
+                            
+                            train_end_date = dates_sorted.iloc[split_idx - 1]
+                            test_start_date = dates_sorted.iloc[split_idx]
+                            
+                            logger.info(f"Temporal split successful:")
+                            logger.info(f"  Training: {len(X_train)} fights (up to {train_end_date.strftime('%Y-%m-%d')})")
+                            logger.info(f"  Testing:  {len(X_test)} fights (from {test_start_date.strftime('%Y-%m-%d')})")
+                            
+                            # Calculate temporal gap
+                            gap_days = (test_start_date - train_end_date).days
+                            logger.info(f"  Temporal gap: {gap_days} days")
+                            
+                            temporal_split_successful = True
+                    
+                if not temporal_split_successful:
+                    # Try a simpler approach - just sort by index assuming chronological order
+                    logger.info("Using simplified temporal split (assuming chronological order by index)")
+                    split_idx = int(len(X) * 0.8)
+                    
+                    X_train = X.iloc[:split_idx]
+                    X_test = X.iloc[split_idx:]
+                    y_train = y.iloc[:split_idx]
+                    y_test = y.iloc[split_idx:]
+                    
+                    logger.info(f"  Training: First {len(X_train)} fights (80%)")
+                    logger.info(f"  Testing:  Last {len(X_test)} fights (20%)")
+                    temporal_split_successful = True
+                    
+            except Exception as e:
+                logger.warning(f"Temporal split failed: {e}")
+                temporal_split_successful = False
+            
+            if not temporal_split_successful:
+                # Fall back to random split
+                logger.warning("Could not perform temporal split - falling back to random split")
+                logger.warning("Consider updating your data to include proper date information")
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y, test_size=0.2, random_state=42, stratify=y
+                )
+        else:
+            # EVALUATION MODE with random split (old behavior)
+            logger.info("Using RANDOM SPLIT (Note: Consider temporal split for time-series data)")
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
         
         # Save processed data for reference
-        train_data = pd.concat([X_train, y_train], axis=1)
-        train_data.to_csv(self.training_dir / f'training_data_{self.timestamp}.csv', index=False)
+        if len(X_train) > 0:
+            train_data = pd.concat([X_train, y_train], axis=1)
+            train_data.to_csv(self.training_dir / f'training_data_{self.timestamp}.csv', index=False)
         
         logger.info(f"Data loaded: {len(X_train)} training samples, {len(X_test)} test samples")
         logger.info(f"Features: {X_train.shape[1]}")
@@ -175,20 +346,23 @@ class CompletePipeline:
         """Create optimized version of the model with feature selection."""
         logger.info(f"Creating optimized model with {n_features} features...")
         
-        # Initialize feature selector
-        selector = UFCFeatureSelector()
-        
-        # Select best features
-        selected_features = selector.select_features(
-            X_train, y_train, model, 
+        # Initialize feature selector with importance-based method
+        selector = UFCFeatureSelector(
+            method='importance_based',
             n_features=n_features
         )
         
+        # Fit the selector on training data
+        selector.fit(X_train, y_train)
+        
+        # Get selected features
+        selected_features = selector.selected_features
+        
         logger.info(f"Selected {len(selected_features)} features")
         
-        # Train optimized model with selected features
-        X_train_opt = X_train[selected_features]
-        X_test_opt = X_test[selected_features]
+        # Transform data to selected features
+        X_train_opt = selector.transform(X_train)
+        X_test_opt = selector.transform(X_test)
         
         # Train new model with selected features
         optimized_trainer = UFCModelTrainer()
@@ -214,13 +388,14 @@ class CompletePipeline:
         logger.info(f"  - AUC: {auc:.4f}")
         logger.info(f"  - F1: {f1:.4f}")
         
-        # Save optimized model and selector
-        timestamp_suffix = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
+        # Use the same timestamp as the rest of the pipeline
         # Save with timestamp
-        joblib.dump(optimized_model, 
-                   self.optimized_dir / f'ufc_model_optimized_{timestamp_suffix}.joblib')
-        selector.save(str(self.optimized_dir / f'feature_selector_{timestamp_suffix}.json'))
+        optimized_model_path = self.optimized_dir / f'ufc_model_optimized_{self.timestamp}.joblib'
+        selector_path = self.optimized_dir / f'feature_selector_{self.timestamp}.json'
+        metrics_path = self.optimized_dir / f'metrics_{self.timestamp}.json'
+        
+        joblib.dump(optimized_model, optimized_model_path)
+        selector.save(str(selector_path))
         
         # Also save as 'latest' for easy access
         joblib.dump(optimized_model, 
@@ -235,10 +410,13 @@ class CompletePipeline:
             'n_features': len(selected_features)
         }
         
-        with open(self.optimized_dir / f'metrics_{timestamp_suffix}.json', 'w') as f:
+        with open(metrics_path, 'w') as f:
             json.dump(metrics, f, indent=2)
         
-        logger.info(f"Optimized model saved to {self.optimized_dir}")
+        logger.info(f"Optimized model saved:")
+        logger.info(f"  - Model: {optimized_model_path.name}")
+        logger.info(f"  - Selector: {selector_path.name}")
+        logger.info(f"  - Directory: {self.optimized_dir}")
         
         return {
             'model': optimized_model,
@@ -315,7 +493,7 @@ class CompletePipeline:
                     'accuracy': optimization_results['metrics']['accuracy'],
                     'n_features': len(optimization_results['features']),
                     'speed_gain': f"{speed_improvement:.1f}x",
-                    'location': str(self.optimized_dir / 'ufc_model_optimized_latest.joblib')
+                    'location': str(self.optimized_dir / f'ufc_model_optimized_{self.timestamp}.joblib')
                 }
             
             # Save summary

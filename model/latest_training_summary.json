@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-08-19_23-28",
+  "training_dir": "/Users/diyagamah/Documents/ufc-predictor/model/training_2025-08-19_23-28",
+  "data": {
+    "n_training": 17158,
+    "n_test": 4290,
+    "n_features_original": 69
+  },
+  "models": {
+    "standard": {
+      "accuracy": 0.7410256410256411,
+      "location": "/Users/diyagamah/Documents/ufc-predictor/model/training_2025-08-19_23-28/ufc_winner_model_2025-08-19_23-28.joblib"
+    },
+    "tuned": {
+      "accuracy": 0.7475524475524475,
+      "location": "/Users/diyagamah/Documents/ufc-predictor/model/training_2025-08-19_23-28/ufc_winner_model_tuned_2025-08-19_23-28.joblib"
+    }
+  },
+  "optimized": {
+    "accuracy": 0.7407925407925408,
+    "n_features": 32,
+    "speed_gain": "2.2x",
+    "location": "/Users/diyagamah/Documents/ufc-predictor/model/optimized/ufc_model_optimized_2025-08-19_23-28.joblib"
+  }
+}

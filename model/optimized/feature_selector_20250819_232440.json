@@ -1,0 +1,456 @@
+{
+  "method": "importance_based",
+  "n_features": 32,
+  "selected_features": [
+    "wins_diff",
+    "slpm_diff",
+    "td_def_diff",
+    "age_diff",
+    "sapm_diff",
+    "losses_diff",
+    "str_acc_diff",
+    "str_def_diff",
+    "red_Wins",
+    "td_avg_diff",
+    "blue_Wins",
+    "red_SLpM",
+    "blue_SLpM",
+    "red_TD Avg.",
+    "blue_TD Acc.",
+    "red_TD Acc.",
+    "red_SApM",
+    "td_acc_diff",
+    "red_TD Def.",
+    "blue_TD Def.",
+    "red_Reach (in)",
+    "blue_SApM",
+    "blue_TD Avg.",
+    "blue_Reach (in)",
+    "blue_Age",
+    "red_Age",
+    "blue_Str. Acc.",
+    "reach_(in)_diff",
+    "red_Losses",
+    "red_Str. Acc.",
+    "blue_Losses",
+    "sub_avg_diff"
+  ],
+  "feature_names": [
+    "blue_SLpM",
+    "blue_Str. Acc.",
+    "blue_SApM",
+    "blue_Str. Def",
+    "blue_TD Avg.",
+    "blue_TD Acc.",
+    "blue_TD Def.",
+    "blue_Sub. Avg.",
+    "blue_Height_inches",
+    "blue_Weight_lbs",
+    "blue_Height (inches)",
+    "blue_Weight (lbs)",
+    "blue_Reach (in)",
+    "blue_Wins",
+    "blue_Losses",
+    "blue_Draws",
+    "blue_Age",
+    "blue_STANCE_:Open Stance",
+    "blue_STANCE_:Orthodox",
+    "blue_STANCE_:Sideways",
+    "blue_STANCE_:Southpaw",
+    "blue_STANCE_:Switch",
+    "blue_STANCE_Unknown",
+    "red_SLpM",
+    "red_Str. Acc.",
+    "red_SApM",
+    "red_Str. Def",
+    "red_TD Avg.",
+    "red_TD Acc.",
+    "red_TD Def.",
+    "red_Sub. Avg.",
+    "red_Height_inches",
+    "red_Weight_lbs",
+    "red_Height (inches)",
+    "red_Weight (lbs)",
+    "red_Reach (in)",
+    "red_Wins",
+    "red_Losses",
+    "red_Draws",
+    "red_Age",
+    "red_STANCE_:Open Stance",
+    "red_STANCE_:Orthodox",
+    "red_STANCE_:Sideways",
+    "red_STANCE_:Southpaw",
+    "red_STANCE_:Switch",
+    "red_STANCE_Unknown",
+    "slpm_diff",
+    "str_acc_diff",
+    "sapm_diff",
+    "str_def_diff",
+    "td_avg_diff",
+    "td_acc_diff",
+    "td_def_diff",
+    "sub_avg_diff",
+    "height_inches_diff",
+    "weight_lbs_diff",
+    "height_(inches)_diff",
+    "weight_(lbs)_diff",
+    "reach_(in)_diff",
+    "wins_diff",
+    "losses_diff",
+    "draws_diff",
+    "age_diff",
+    "stance_:open_stance_diff",
+    "stance_:orthodox_diff",
+    "stance_:sideways_diff",
+    "stance_:southpaw_diff",
+    "stance_:switch_diff",
+    "stance_unknown_diff"
+  ],
+  "feature_importance": [
+    {
+      "feature": "wins_diff",
+      "importance": 0.049748394282423385,
+      "importance_pct": 4.974839428242339
+    },
+    {
+      "feature": "slpm_diff",
+      "importance": 0.045304940185216795,
+      "importance_pct": 4.530494018521679
+    },
+    {
+      "feature": "td_def_diff",
+      "importance": 0.035791816592388254,
+      "importance_pct": 3.5791816592388255
+    },
+    {
+      "feature": "age_diff",
+      "importance": 0.032141350025330036,
+      "importance_pct": 3.2141350025330038
+    },
+    {
+      "feature": "sapm_diff",
+      "importance": 0.02961843339464248,
+      "importance_pct": 2.9618433394642483
+    },
+    {
+      "feature": "losses_diff",
+      "importance": 0.027786185514423543,
+      "importance_pct": 2.7786185514423543
+    },
+    {
+      "feature": "str_acc_diff",
+      "importance": 0.027726446019915314,
+      "importance_pct": 2.7726446019915314
+    },
+    {
+      "feature": "str_def_diff",
+      "importance": 0.02662333532158845,
+      "importance_pct": 2.662333532158845
+    },
+    {
+      "feature": "red_Wins",
+      "importance": 0.02616061741455529,
+      "importance_pct": 2.616061741455529
+    },
+    {
+      "feature": "td_avg_diff",
+      "importance": 0.025493742222799945,
+      "importance_pct": 2.5493742222799947
+    },
+    {
+      "feature": "blue_Wins",
+      "importance": 0.02538525679346342,
+      "importance_pct": 2.5385256793463418
+    },
+    {
+      "feature": "red_SLpM",
+      "importance": 0.02379930388495318,
+      "importance_pct": 2.379930388495318
+    },
+    {
+      "feature": "blue_SLpM",
+      "importance": 0.022182554668166484,
+      "importance_pct": 2.2182554668166485
+    },
+    {
+      "feature": "red_TD Avg.",
+      "importance": 0.022031742861716636,
+      "importance_pct": 2.2031742861716634
+    },
+    {
+      "feature": "blue_TD Acc.",
+      "importance": 0.022003053681180842,
+      "importance_pct": 2.200305368118084
+    },
+    {
+      "feature": "red_TD Acc.",
+      "importance": 0.021645826558161305,
+      "importance_pct": 2.1645826558161305
+    },
+    {
+      "feature": "red_SApM",
+      "importance": 0.021467602972038174,
+      "importance_pct": 2.1467602972038176
+    },
+    {
+      "feature": "td_acc_diff",
+      "importance": 0.021398858538193694,
+      "importance_pct": 2.1398858538193695
+    },
+    {
+      "feature": "red_TD Def.",
+      "importance": 0.02106897323626193,
+      "importance_pct": 2.106897323626193
+    },
+    {
+      "feature": "blue_TD Def.",
+      "importance": 0.021051056869634755,
+      "importance_pct": 2.1051056869634754
+    },
+    {
+      "feature": "red_Reach (in)",
+      "importance": 0.020840178534258978,
+      "importance_pct": 2.0840178534258977
+    },
+    {
+      "feature": "blue_SApM",
+      "importance": 0.020815923717992336,
+      "importance_pct": 2.0815923717992337
+    },
+    {
+      "feature": "blue_TD Avg.",
+      "importance": 0.02080489656124787,
+      "importance_pct": 2.080489656124787
+    },
+    {
+      "feature": "blue_Reach (in)",
+      "importance": 0.020729707435145,
+      "importance_pct": 2.0729707435145
+    },
+    {
+      "feature": "blue_Age",
+      "importance": 0.020668743338088803,
+      "importance_pct": 2.0668743338088804
+    },
+    {
+      "feature": "red_Age",
+      "importance": 0.020458598282409778,
+      "importance_pct": 2.0458598282409777
+    },
+    {
+      "feature": "blue_Str. Acc.",
+      "importance": 0.01908917883628205,
+      "importance_pct": 1.9089178836282048
+    },
+    {
+      "feature": "reach_(in)_diff",
+      "importance": 0.018680398582487812,
+      "importance_pct": 1.8680398582487812
+    },
+    {
+      "feature": "red_Losses",
+      "importance": 0.018560627355672016,
+      "importance_pct": 1.8560627355672015
+    },
+    {
+      "feature": "red_Str. Acc.",
+      "importance": 0.01843215534361527,
+      "importance_pct": 1.843215534361527
+    },
+    {
+      "feature": "blue_Losses",
+      "importance": 0.0184007720679562,
+      "importance_pct": 1.84007720679562
+    },
+    {
+      "feature": "sub_avg_diff",
+      "importance": 0.017928419150319282,
+      "importance_pct": 1.7928419150319281
+    },
+    {
+      "feature": "blue_Str. Def",
+      "importance": 0.017548843266593124,
+      "importance_pct": 1.7548843266593124
+    },
+    {
+      "feature": "red_Sub. Avg.",
+      "importance": 0.01684533074145768,
+      "importance_pct": 1.6845330741457678
+    },
+    {
+      "feature": "red_Str. Def",
+      "importance": 0.01680139366489324,
+      "importance_pct": 1.6801393664893238
+    },
+    {
+      "feature": "blue_Sub. Avg.",
+      "importance": 0.016162007465062925,
+      "importance_pct": 1.6162007465062924
+    },
+    {
+      "feature": "height_(inches)_diff",
+      "importance": 0.011595425230160598,
+      "importance_pct": 1.1595425230160599
+    },
+    {
+      "feature": "height_inches_diff",
+      "importance": 0.011238985731353719,
+      "importance_pct": 1.123898573135372
+    },
+    {
+      "feature": "red_Height_inches",
+      "importance": 0.010367164248747937,
+      "importance_pct": 1.0367164248747938
+    },
+    {
+      "feature": "blue_Height (inches)",
+      "importance": 0.010270131533990846,
+      "importance_pct": 1.0270131533990847
+    },
+    {
+      "feature": "red_Height (inches)",
+      "importance": 0.010255681034186592,
+      "importance_pct": 1.0255681034186592
+    },
+    {
+      "feature": "blue_Height_inches",
+      "importance": 0.009799257921886325,
+      "importance_pct": 0.9799257921886325
+    },
+    {
+      "feature": "weight_lbs_diff",
+      "importance": 0.009040058865055935,
+      "importance_pct": 0.9040058865055935
+    },
+    {
+      "feature": "weight_(lbs)_diff",
+      "importance": 0.009010822927966627,
+      "importance_pct": 0.9010822927966627
+    },
+    {
+      "feature": "blue_Weight_lbs",
+      "importance": 0.008357652263459534,
+      "importance_pct": 0.8357652263459534
+    },
+    {
+      "feature": "red_Weight (lbs)",
+      "importance": 0.008071620308498261,
+      "importance_pct": 0.8071620308498262
+    },
+    {
+      "feature": "red_Weight_lbs",
+      "importance": 0.008038591902578988,
+      "importance_pct": 0.8038591902578989
+    },
+    {
+      "feature": "blue_Weight (lbs)",
+      "importance": 0.007512260578247669,
+      "importance_pct": 0.7512260578247669
+    },
+    {
+      "feature": "draws_diff",
+      "importance": 0.006225716890104423,
+      "importance_pct": 0.6225716890104424
+    },
+    {
+      "feature": "stance_:orthodox_diff",
+      "importance": 0.004052854512953932,
+      "importance_pct": 0.4052854512953932
+    },
+    {
+      "feature": "stance_:southpaw_diff",
+      "importance": 0.00390546856585822,
+      "importance_pct": 0.390546856585822
+    },
+    {
+      "feature": "red_Draws",
+      "importance": 0.0035614280606893994,
+      "importance_pct": 0.35614280606893994
+    },
+    {
+      "feature": "blue_Draws",
+      "importance": 0.0034152318108436634,
+      "importance_pct": 0.34152318108436636
+    },
+    {
+      "feature": "red_STANCE_:Orthodox",
+      "importance": 0.0023430641831344245,
+      "importance_pct": 0.23430641831344245
+    },
+    {
+      "feature": "blue_STANCE_:Southpaw",
+      "importance": 0.0021404705565531527,
+      "importance_pct": 0.2140470556553153
+    },
+    {
+      "feature": "blue_STANCE_:Orthodox",
+      "importance": 0.002009485747658295,
+      "importance_pct": 0.20094857476582953
+    },
+    {
+      "feature": "red_STANCE_:Southpaw",
+      "importance": 0.001981033984809948,
+      "importance_pct": 0.1981033984809948
+    },
+    {
+      "feature": "stance_:switch_diff",
+      "importance": 0.0018760496018144653,
+      "importance_pct": 0.18760496018144654
+    },
+    {
+      "feature": "red_STANCE_:Switch",
+      "importance": 0.0009039061010892758,
+      "importance_pct": 0.09039061010892759
+    },
+    {
+      "feature": "blue_STANCE_:Switch",
+      "importance": 0.0008995638187136202,
+      "importance_pct": 0.08995638187136201
+    },
+    {
+      "feature": "stance_unknown_diff",
+      "importance": 0.0008728398858834289,
+      "importance_pct": 0.0872839885883429
+    },
+    {
+      "feature": "red_STANCE_Unknown",
+      "importance": 0.0005376995744634074,
+      "importance_pct": 0.053769957446340735
+    },
+    {
+      "feature": "blue_STANCE_Unknown",
+      "importance": 0.00035906274069215296,
+      "importance_pct": 0.035906274069215295
+    },
+    {
+      "feature": "stance_:open_stance_diff",
+      "importance": 8.71318893962901e-05,
+      "importance_pct": 0.00871318893962901
+    },
+    {
+      "feature": "red_STANCE_:Open Stance",
+      "importance": 4.2560769787197906e-05,
+      "importance_pct": 0.00425607697871979
+    },
+    {
+      "feature": "blue_STANCE_:Open Stance",
+      "importance": 3.0163294809741285e-05,
+      "importance_pct": 0.0030163294809741285
+    },
+    {
+      "feature": "stance_:sideways_diff",
+      "importance": 1.935429526188083e-06,
+      "importance_pct": 0.00019354295261880832
+    },
+    {
+      "feature": "blue_STANCE_:Sideways",
+      "importance": 1.4654549461085761e-08,
+      "importance_pct": 1.465454946108576e-06
+    },
+    {
+      "feature": "red_STANCE_:Sideways",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    }
+  ]
+}

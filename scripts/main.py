@@ -296,24 +296,148 @@ def run_complete_pipeline(tune_hyperparameters: bool = True,
     X_method.fillna(X_method.median(), inplace=True)
     print(f"Method dataset shape: {X_method.shape}, Target distribution: {y_method.value_counts().to_dict()}")
     
+    # Define date extraction function for both winner and method models
+    import re
+    from datetime import datetime, timedelta
+    
+    def extract_date_from_event(event_str):
+        """Extract date from Event column string like 'UFC 63: Hughes vs PennSep. 23, 2006'"""
+        try:
+            # Look for date patterns at the end of the event string
+            date_pattern = r'([A-Za-z]{3}\.\s+\d{1,2},\s+\d{4})$'
+            match = re.search(date_pattern, str(event_str))
+            if match:
+                date_str = match.group(1)
+                # Parse the date
+                return datetime.strptime(date_str, '%b. %d, %Y')
+            return None
+        except:
+            return None
+    
     # 7. Train WINNER models
-    print("\n7. Training winner prediction models...")
+    print("\n7. Training winner prediction models with temporal splitting...")
+    
+    # Apply temporal splitting logic to winner prediction
+    print("   Extracting dates from Event column for chronological ordering...")
+    winner_df_temp = X_winner.copy()
+    winner_df_temp['y_winner'] = y_winner
+    winner_df_temp['event_date'] = df_processed['Event'].apply(extract_date_from_event)
+    
+    # Filter out rows without valid dates
+    valid_date_mask = winner_df_temp['event_date'].notna()
+    winner_df_temporal = winner_df_temp[valid_date_mask].copy()
+    print(f"   Retained {len(winner_df_temporal)} / {len(winner_df_temp)} winner fights with valid dates")
+    
+    if len(winner_df_temporal) == 0:
+        print("   WARNING: No valid dates found for winner model, using all data")
+        X_winner_temporal = X_winner
+        y_winner_temporal = y_winner
+    else:
+        # Sort by date and filter temporal data
+        winner_df_temporal = winner_df_temporal.sort_values('event_date')
+        X_winner_temporal = winner_df_temporal[X_winner.columns]
+        y_winner_temporal = winner_df_temporal['y_winner']
+        
+        print(f"   Training on temporal winner data: {len(X_winner_temporal)} samples")
+        print(f"   Date range: {winner_df_temporal['event_date'].min().strftime('%Y-%m-%d')} to {winner_df_temporal['event_date'].max().strftime('%Y-%m-%d')}")
+    
+    # Train winner prediction models with temporal data
     trainer = train_complete_pipeline(
-        X_winner, y_winner, 
+        X_winner_temporal, y_winner_temporal, 
         tune_hyperparameters=tune_hyperparameters,
         enable_feature_selection=enable_feature_selection,
         feature_selection_method=selection_method,
         n_features=n_features
     )
     
-    # 8. Train METHOD models with GridSearch
-    print("\n8. Training method prediction models...")
-    X_train_m, X_test_m, y_train_m, y_test_m = train_test_split(
-        X_method, y_method, test_size=0.2, random_state=42, stratify=y_method
-    )
+    # 8. Train METHOD models with TEMPORAL splitting (preventing data leakage)
+    print("\n8. Training method prediction models with temporal splitting...")
+    
+    # Extract dates from Event column for temporal splitting
+    print("   Extracting dates from Event column for chronological ordering...")
+    
+    # Extract dates and create temporal index
+    method_df_temp = X_method.copy()
+    method_df_temp['y_method'] = y_method
+    method_df_temp['event_date'] = df_processed['Event'].apply(extract_date_from_event)
+    
+    # Filter out rows without valid dates
+    valid_date_mask = method_df_temp['event_date'].notna()
+    method_df_temporal = method_df_temp[valid_date_mask].copy()
+    print(f"   Retained {len(method_df_temporal)} / {len(method_df_temp)} fights with valid dates")
+    
+    if len(method_df_temporal) == 0:
+        print("   WARNING: No valid dates found, falling back to random split")
+        X_train_m, X_test_m, y_train_m, y_test_m = train_test_split(
+            X_method, y_method, test_size=0.2, random_state=42, stratify=y_method
+        )
+    else:
+        # Sort by date and perform temporal split with gap
+        method_df_temporal = method_df_temporal.sort_values('event_date')
+        
+        # Add temporal gap to prevent information leakage from training camps
+        # Gap of 30 days between training and test sets
+        temporal_gap_days = 30
+        
+        # Find 80th percentile date for initial split
+        split_idx = int(0.8 * len(method_df_temporal))
+        tentative_split_date = method_df_temporal.iloc[split_idx]['event_date']
+        
+        # Create gap: test set starts 30 days after training set ends
+        test_start_date = tentative_split_date + timedelta(days=temporal_gap_days)
+        
+        # Final split with gap
+        train_mask = method_df_temporal['event_date'] < tentative_split_date
+        test_mask = method_df_temporal['event_date'] >= test_start_date
+        
+        train_indices = method_df_temporal[train_mask].index
+        test_indices = method_df_temporal[test_mask].index
+        
+        if len(train_indices) == 0 or len(test_indices) == 0:
+            print("   WARNING: Temporal gap too large, using simple 80/20 split without gap")
+            train_size = int(0.8 * len(method_df_temporal))
+            train_indices = method_df_temporal.index[:train_size]
+            test_indices = method_df_temporal.index[train_size:]
+        
+        print(f"   Training on fights from {method_df_temporal.loc[train_indices[0], 'event_date'].strftime('%Y-%m-%d')} to {method_df_temporal.loc[train_indices[-1], 'event_date'].strftime('%Y-%m-%d')}")
+        print(f"   Testing on fights from {method_df_temporal.loc[test_indices[0], 'event_date'].strftime('%Y-%m-%d')} to {method_df_temporal.loc[test_indices[-1], 'event_date'].strftime('%Y-%m-%d')}")
+        print(f"   Temporal gap: {temporal_gap_days} days to prevent training camp information leakage")
+        
+        # Handle fighter rematches by ensuring no fighter appears in both train and test
+        # Get unique fighters in each set
+        train_fighters = set()
+        test_fighters = set()
+        
+        # Collect all fighter names from training set
+        for idx in train_indices:
+            fighter = method_df_temporal.loc[idx, 'Fighter'] if 'Fighter' in method_df_temp.columns else None
+            opponent = method_df_temporal.loc[idx, 'Opponent'] if 'Opponent' in method_df_temp.columns else None
+            if fighter: train_fighters.add(fighter)
+            if opponent: train_fighters.add(opponent)
+        
+        # Collect all fighter names from test set
+        for idx in test_indices:
+            fighter = method_df_temporal.loc[idx, 'Fighter'] if 'Fighter' in method_df_temp.columns else None
+            opponent = method_df_temporal.loc[idx, 'Opponent'] if 'Opponent' in method_df_temp.columns else None
+            if fighter: test_fighters.add(fighter)
+            if opponent: test_fighters.add(opponent)
+        
+        # Check for overlap
+        overlapping_fighters = train_fighters.intersection(test_fighters)
+        if overlapping_fighters:
+            print(f"   WARNING: {len(overlapping_fighters)} fighters appear in both train and test sets")
+            print(f"   This may cause additional data leakage beyond temporal issues")
+        
+        # Create temporal splits
+        X_train_m = method_df_temporal.loc[train_indices, X_method.columns]
+        X_test_m = method_df_temporal.loc[test_indices, X_method.columns]  
+        y_train_m = method_df_temporal.loc[train_indices, 'y_method']
+        y_test_m = method_df_temporal.loc[test_indices, 'y_method']
+        
+        print(f"   Temporal split: {len(X_train_m)} training, {len(X_test_m)} testing samples")
     
     if tune_hyperparameters:
-        print("   Performing GridSearch for method prediction model...")
+        print("   Performing GridSearch for method prediction model with TimeSeriesSplit...")
         method_param_grid = {
             'n_estimators': [50, 100, 200],
             'max_depth': [10, 20, None],
@@ -321,10 +445,16 @@ def run_complete_pipeline(tune_hyperparameters: bool = True,
             'min_samples_leaf': [1, 2, 4]
         }
         
+        # Import TimeSeriesSplit for temporal cross-validation
+        from sklearn.model_selection import TimeSeriesSplit
+        
+        # Use TimeSeriesSplit to respect temporal order during hyperparameter tuning
+        tscv = TimeSeriesSplit(n_splits=5)
+        
         rf_method_base = RandomForestClassifier(random_state=42, n_jobs=-1)
         method_grid_search = GridSearchCV(
             rf_method_base, method_param_grid, 
-            cv=5, scoring='accuracy', n_jobs=-1, verbose=1
+            cv=tscv, scoring='accuracy', n_jobs=-1, verbose=1
         )
         method_grid_search.fit(X_train_m, y_train_m)
         
