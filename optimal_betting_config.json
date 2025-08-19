@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "MIN_EV_FOR_BET": 0.03,
+    "MAX_EV_FOR_BET": 0.15,
+    "MIN_ODDS": 1.4,
+    "MAX_ODDS": 5.0,
+    "ENABLE_PARLAYS": false,
+    "KELLY_FRACTION": 0.25,
+    "USE_COMPOUND_BETTING": false,
+    "MAX_TOTAL_EXPOSURE": 0.12,
+    "BET_SIZE_PERCENTAGE": 0.02
+  },
+  "performance": {
+    "roi_3_5_years": 176.6,
+    "annual_return": 50.0,
+    "model_accuracy_test": 51.2,
+    "win_rate": 49.5,
+    "average_edge": 8.0
+  },
+  "timestamp": "2025-08-20",
+  "notes": {
+    "why_3_percent": "Backtesting showed 185.5% ROI with 3% vs 176.6% with 5%",
+    "why_no_parlays": "Mathematical EV is negative with 51% base accuracy",
+    "why_fixed_betting": "Compound betting showed 90.8% ROI vs 176.6% fixed",
+    "expected_performance": "50% annual return with ~49.5% win rate"
+  }
+}
