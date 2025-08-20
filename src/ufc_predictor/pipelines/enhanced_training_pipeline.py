@@ -25,7 +25,12 @@ from src.ufc_predictor.data.feature_engineering import prepare_modeling_data
 from src.ufc_predictor.evaluation.walk_forward_validator import WalkForwardValidator, RetrainingConfig, compare_validation_methods
 
 # Import existing pipeline for compatibility
-from .complete_training_pipeline import CompletePipeline
+try:
+    from .complete_training_pipeline import CompletePipeline
+except ImportError:
+    # Fallback to importing from main repo if needed
+    sys.path.insert(0, '/Users/diyagamah/Documents/ufc-predictor/src')
+    from ufc_predictor.pipelines.complete_training_pipeline import CompletePipeline
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

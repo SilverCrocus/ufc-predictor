@@ -117,9 +117,9 @@ Examples:
     # Walk-forward validation command
     walkforward_parser = subparsers.add_parser('walkforward', help='Run walk-forward validation to address overfitting')
     walkforward_parser.add_argument('--retrain-months', type=int, default=3, 
-                                   help='Retrain frequency in months (default: 3)')
+                                   help='Months between model retraining')
     walkforward_parser.add_argument('--validation-mode', choices=['walk_forward', 'static_temporal', 'comparison'], 
-                                   default='walk_forward', help='Validation method')
+                                   default='walk_forward', help='Validation strategy to use')
     walkforward_parser.add_argument('--tune', action='store_true', help='Tune hyperparameters')
     walkforward_parser.add_argument('--optimize', action='store_true', help='Create optimized model')
     walkforward_parser.add_argument('--n-features', type=int, default=32, 
@@ -616,6 +616,27 @@ Examples:
             if args.export:
                 backtester.export_results(args.export)
                 print(f"\n✅ Detailed results exported to: {args.export}")
+        
+        elif args.command == 'walkforward':
+            print("\n🔄 Running walk-forward validation to detect overfitting...")
+            from src.ufc_predictor.pipelines.enhanced_training_pipeline import EnhancedPipeline
+            
+            pipeline = EnhancedPipeline()
+            results = pipeline.run_walk_forward_validation(
+                retrain_months=args.retrain_months,
+                validation_mode=args.validation_mode,
+                tune=args.tune,
+                optimize=args.optimize,
+                n_features=args.n_features,
+                production_mode=False  # Always use validation mode for walkforward
+            )
+            
+            print("\n✅ Walk-forward validation complete!")
+            if args.validation_mode == 'comparison':
+                print("\n📊 Comparison Results:")
+                print(f"  Static Temporal - Overfitting: {results.get('static_overfitting', 'N/A'):.2%}")
+                print(f"  Walk-Forward - Overfitting: {results.get('walkforward_overfitting', 'N/A'):.2%}")
+                print(f"\n💡 Recommendation: {results.get('recommendation', 'Use walk-forward validation')}")
         
         elif args.command == 'pipeline':
             print("\n🔄 Running complete pipeline with auto-optimization...")

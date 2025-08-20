@@ -34,6 +34,7 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
     "selenium>=4.34.2",
+    "tqdm>=4.67.1",
     "xgboost>=2.1.4",
 ]
 
