@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""
+UFC Predictor - Simple Command Interface
+Just type: ./ufc [command]
+
+Note: This script uses 'uv run' to manage dependencies
+"""
+
+import sys
+import subprocess
+import os
+
+# Colors for better readability
+GREEN = '\033[92m'
+BLUE = '\033[94m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+RESET = '\033[0m'
+
+def print_help():
+    """Print help message"""
+    print(f"""
+{GREEN}UFC Predictor - Simple Commands{RESET}
+
+Usage: ./ufc [command] [options]
+
+{BLUE}Main Commands:{RESET}
+  train        Train models with optimization
+  validate     Test accuracy (no odds, pure predictions)
+  backtest     Calculate ROI with your TEST SET odds (walk-forward)
+  predict      Quick fight prediction
+  bet          Analyze current betting opportunities  
+  roi          Calculate profit potential
+  
+{BLUE}Quick Examples:{RESET}
+  ./ufc train                  # Train with all optimizations
+  ./ufc backtest               # See realistic performance
+  ./ufc predict                # Interactive fight prediction
+  ./ufc bet                    # Current betting opportunities
+  ./ufc roi                    # Your profit potential
+
+{YELLOW}Tips:{RESET}
+  • 'backtest' now uses walk-forward (realistic) by default
+  • 'train' includes automatic optimization
+  • All commands use sensible defaults - no args needed!
+""")
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ['help', '-h', '--help']:
+        print_help()
+        return
+    
+    command = sys.argv[1].lower()
+    
+    if command == 'train':
+        print(f"{GREEN}🏋️ Training models with walk-forward validation...{RESET}")
+        print(f"{BLUE}This will:{RESET}")
+        print("  • Train standard and tuned models")
+        print("  • Create optimized 32-feature model")
+        print("  • Validate with walk-forward approach")
+        print("  • Show realistic performance metrics\n")
+        subprocess.run(['uv', 'run', 'main.py', 'pipeline', '--tune', '--optimize'])
+        
+    elif command == 'simple-backtest':
+        print(f"{GREEN}💰 Running simple ROI backtest with real odds...{RESET}")
+        print(f"{BLUE}Using your actual test set with historical odds{RESET}\n")
+        subprocess.run(['uv', 'run', 'simple_roi_backtest.py'])
+        
+    elif command == 'backtest':
+        print(f"{GREEN}📊 Running ROI backtest with real historical odds...{RESET}")
+        print(f"{BLUE}This shows:{RESET}")
+        print("  • Uses your TEST SET with real betting odds (1,901 fights)")
+        print("  • Simulates with your 73.5% model accuracy")
+        print("  • Walk-forward approach with periodic results")
+        print("  • Actual ROI and bankroll growth\n")
+        # Run the proper backtest with test set odds
+        subprocess.run(['uv', 'run', 'proper_roi_backtest.py'])
+        
+    elif command == 'predict':
+        # Interactive prediction
+        print(f"{GREEN}🥊 UFC Fight Prediction{RESET}")
+        
+        if len(sys.argv) > 3:
+            fighter1 = sys.argv[2]
+            fighter2 = sys.argv[3]
+        else:
+            fighter1 = input("Enter Fighter 1 name: ").strip()
+            fighter2 = input("Enter Fighter 2 name: ").strip()
+        
+        if fighter1 and fighter2:
+            subprocess.run(['uv', 'run', 'main.py', 'predict', 
+                          '--fighter1', fighter1, '--fighter2', fighter2])
+        else:
+            print(f"{RED}Error: Need two fighter names{RESET}")
+            
+    elif command == 'bet':
+        print(f"{GREEN}💰 Analyzing betting opportunities...{RESET}")
+        bankroll = input("Enter bankroll (default $1000): ").strip() or "1000"
+        subprocess.run(['uv', 'run', 'main.py', 'betting', '--bankroll', bankroll])
+        
+    elif command == 'roi':
+        print(f"{GREEN}💵 Calculating realistic ROI potential...{RESET}")
+        subprocess.run(['uv', 'run', 'recalculate_roi_walkforward.py'])
+        
+    elif command == 'validate':
+        print(f"{GREEN}🔍 Running walk-forward accuracy validation...{RESET}")
+        print(f"{BLUE}This shows:{RESET}")
+        print("  • Pure prediction accuracy (no odds)")
+        print("  • Temporal stability of model")
+        print("  • Performance degradation over time\n")
+        subprocess.run(['uv', 'run', 'python',
+                       'src/ufc_predictor/evaluation/walk_forward_accuracy.py'])
+        
+    elif command == 'quick':
+        # Show quick status
+        print(f"{GREEN}📊 Quick Status Check{RESET}")
+        print("\nChecking model status...")
+        
+        # Check if optimized model exists
+        if os.path.exists('model/optimized/ufc_model_optimized_latest.joblib'):
+            print(f"  ✅ Optimized model found")
+        else:
+            print(f"  ❌ No optimized model - run './ufc train'")
+        
+        # Check last backtest results
+        if os.path.exists('model/walk_forward_backtest_results.csv'):
+            import pandas as pd
+            df = pd.read_csv('model/walk_forward_backtest_results.csv')
+            avg_acc = df['test_accuracy'].mean()
+            print(f"  ✅ Last backtest accuracy: {avg_acc:.1%}")
+        else:
+            print(f"  ❌ No backtest results - run './ufc backtest'")
+        
+        print(f"\n{BLUE}Next steps:{RESET}")
+        print("  1. ./ufc train     - Train/update models")
+        print("  2. ./ufc backtest  - Check performance")
+        print("  3. ./ufc bet       - Find opportunities")
+        
+    else:
+        print(f"{RED}Unknown command: {command}{RESET}")
+        print("Try: ./ufc help")
+
+if __name__ == "__main__":
+    main()

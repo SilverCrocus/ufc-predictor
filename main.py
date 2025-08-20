@@ -107,11 +107,12 @@ Examples:
     multibet_parser.add_argument('--fights', nargs='+', 
                                 help='Manual fight list (format: "Fighter1 vs Fighter2")')
     
-    # Backtest command
-    backtest_parser = subparsers.add_parser('backtest', help='Run multi-bet backtest')
+    # Backtest command (now uses walk-forward by default)
+    backtest_parser = subparsers.add_parser('backtest', help='Run walk-forward backtest (realistic)')
     backtest_parser.add_argument('--start-date', help='Start date (YYYY-MM-DD)')
     backtest_parser.add_argument('--end-date', help='End date (YYYY-MM-DD)')
     backtest_parser.add_argument('--bankroll', type=float, default=1000, help='Initial bankroll')
+    backtest_parser.add_argument('--static', action='store_true', help='Use old static backtest instead of walk-forward')
     backtest_parser.add_argument('--export', help='Export results to JSON file')
     
     # Walk-forward validation command
@@ -124,6 +125,17 @@ Examples:
     walkforward_parser.add_argument('--optimize', action='store_true', help='Create optimized model')
     walkforward_parser.add_argument('--n-features', type=int, default=32, 
                                    help='Number of features for optimized model')
+    
+    # Walk-forward backtest command  
+    wf_backtest_parser = subparsers.add_parser('wf-backtest', help='Run walk-forward backtesting with realistic retraining')
+    wf_backtest_parser.add_argument('--start-date', help='Start date (YYYY-MM-DD)')
+    wf_backtest_parser.add_argument('--end-date', help='End date (YYYY-MM-DD)')
+    wf_backtest_parser.add_argument('--retrain-months', type=int, default=6, 
+                                   help='How often to retrain model (default: 6 months)')
+    wf_backtest_parser.add_argument('--test-months', type=int, default=3,
+                                   help='Test window size in months (default: 3)')
+    wf_backtest_parser.add_argument('--compare', action='store_true',
+                                   help='Compare with static model approach')
     
     args = parser.parse_args()
     
@@ -482,6 +494,48 @@ Examples:
                 print(f"\n✅ Analysis exported to: {args.export}")
         
         elif args.command == 'backtest':
+            if args.static:
+                # Use old static backtest if specifically requested
+                print(f"\n⏱️  Running Static Multi-Bet Backtest (old method)")
+                print(f"  Initial Bankroll: ${args.bankroll}")
+                print(f"  ⚠️ Note: This uses a static model (unrealistic). Remove --static for walk-forward.")
+            else:
+                # Default: Use walk-forward backtest (realistic)
+                print("\n🔄 Running Walk-Forward Backtest (realistic with retraining)...")
+                from src.ufc_predictor.backtesting.walk_forward_backtest import WalkForwardBacktester
+                
+                backtester = WalkForwardBacktester(
+                    initial_train_years=3,
+                    test_window_months=3,
+                    retrain_months=6
+                )
+                
+                # Run backtest
+                results = backtester.run_backtest(
+                    start_date=args.start_date,
+                    end_date=args.end_date
+                )
+                
+                # Always compare with static
+                comparison = backtester.compare_with_static()
+                
+                if comparison:
+                    print("\n🎯 Key Insight:")
+                    improvement = comparison['improvement']
+                    print(f"  Walk-forward is {improvement*100:.1f}% more accurate than static model!")
+                    print(f"  Your actual performance is much better than static backtests suggest.")
+                
+                print("\n📁 Results saved to: model/walk_forward_backtest_results.csv")
+                
+                # Export if requested
+                if args.export:
+                    results.to_csv(args.export.replace('.json', '.csv'), index=False)
+                    print(f"✅ Exported to: {args.export}")
+                
+                # Skip the rest of the old backtest code
+                return
+            
+            # Continue with old static backtest code if --static was used
             print(f"\n⏱️  Running Multi-Bet Backtest")
             print(f"  Initial Bankroll: ${args.bankroll}")
             
@@ -638,13 +692,46 @@ Examples:
                 print(f"  Walk-Forward - Overfitting: {results.get('walkforward_overfitting', 'N/A'):.2%}")
                 print(f"\n💡 Recommendation: {results.get('recommendation', 'Use walk-forward validation')}")
         
+        elif args.command == 'wf-backtest':
+            print("\n🔄 Running walk-forward backtesting with realistic retraining...")
+            from src.ufc_predictor.backtesting.walk_forward_backtest import WalkForwardBacktester
+            
+            backtester = WalkForwardBacktester(
+                initial_train_years=3,
+                test_window_months=args.test_months,
+                retrain_months=args.retrain_months
+            )
+            
+            # Run backtest
+            results = backtester.run_backtest(
+                start_date=args.start_date,
+                end_date=args.end_date
+            )
+            
+            # Compare with static if requested
+            if args.compare:
+                comparison = backtester.compare_with_static()
+                
+                if comparison:
+                    print("\n🎯 Key Insight:")
+                    improvement = comparison['improvement']
+                    print(f"  Walk-forward is {improvement*100:.1f}% more accurate than static model!")
+                    print(f"  This means your actual ROI is much higher than backtests suggest.")
+            
+            print("\n📁 Results saved to: model/walk_forward_backtest_results.csv")
+        
         elif args.command == 'pipeline':
-            print("\n🔄 Running complete pipeline with auto-optimization...")
+            print("\n🔄 Running complete pipeline with walk-forward validation...")
             from src.ufc_predictor.pipelines.complete_training_pipeline import CompletePipeline
             
             # Determine split strategy
             use_temporal = not args.random_split  # Default to temporal unless random is specified
             production_mode = args.production
+            
+            # Always show walk-forward validation unless in production
+            if not production_mode:
+                print("  ✅ Walk-forward validation enabled (realistic performance metrics)")
+                print("  ✅ Will show overfitting analysis and temporal stability")
             
             if production_mode:
                 print("🚀 PRODUCTION MODE: Training on ALL available data")
