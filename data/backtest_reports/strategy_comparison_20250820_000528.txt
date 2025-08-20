@@ -1,0 +1,53 @@
+======================================================================
+YOUR BETTING STRATEGIES - BACKTEST COMPARISON
+======================================================================
+
+Test Date: 2025-08-20 00:05
+Test Set: 4,289 fights (Oct 2021 - Aug 2025)
+Your model has NEVER seen these fights
+
+🏆 BEST STRATEGY
+--------------------------------------------------
+Winner: V2 Conservative
+ROI: 48.04%
+Configuration: {'max_bet': '2.0%', 'min_edge': '3.0%', 'kelly_fraction': '25%', 'temperature': 1.1, 'parlays': False}
+
+📊 DETAILED COMPARISON
+--------------------------------------------------
+
+V2 Conservative:
+  ROI: 48.04%
+  Bets: 1332/3798 (35.1%)
+  Win Rate: 45.9%
+  Bankroll: $1000 → $56640817
+  Avg Bet: $88515.17 (8851.5%)
+  Sharpe: 4.02
+
+Original Enhanced:
+  ROI: -48.87%
+  Bets: 10/3798 (0.3%)
+  Win Rate: 20.0%
+  Bankroll: $1000 → $802
+  Avg Bet: $40.58 (4.1%)
+  Sharpe: -13.18
+
+Calibrated:
+  ROI: -53.13%
+  Bets: 13/3798 (0.3%)
+  Win Rate: 23.1%
+  Bankroll: $1000 → $900
+  Avg Bet: $14.47 (1.4%)
+  Sharpe: -7.81
+
+Baseline (for comparison):
+  ROI: -54.05%
+  Bets: 10/3798 (0.3%)
+  Win Rate: 20.0%
+  Bankroll: $1000 → $950
+  Avg Bet: $9.19 (0.9%)
+  Sharpe: -13.60
+
+🎯 RECOMMENDATIONS
+--------------------------------------------------
+✅ Strong positive edge detected with V2 Conservative
+   Consider paper trading with this configuration

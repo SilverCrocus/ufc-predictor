@@ -53,9 +53,22 @@ class UnifiedUFCPredictor:
     
     def _find_latest_model(self, model_type: str) -> str:
         """Auto-detect latest trained model."""
-        model_dir = Path('model')
+        # Check both current directory and main repo
+        current_dir = Path('model')
+        main_repo_dir = Path('/Users/diyagamah/Documents/ufc-predictor/model')
         
-        # Try versioned directories first
+        # Prioritize local models if they exist, otherwise check main repo
+        model_dir = current_dir if current_dir.exists() else main_repo_dir
+        
+        # Check for optimized models first (best performance)
+        optimized_dir = model_dir / 'optimized'
+        if optimized_dir.exists():
+            if model_type == 'winner':
+                optimized_model = optimized_dir / 'ufc_model_optimized_latest.joblib'
+                if optimized_model.exists():
+                    return str(optimized_model)
+        
+        # Try versioned directories second
         training_dirs = sorted([d for d in model_dir.iterdir() 
                                if d.is_dir() and d.name.startswith('training_')],
                               reverse=True)
@@ -84,7 +97,12 @@ class UnifiedUFCPredictor:
     
     def _find_latest_data(self) -> str:
         """Auto-detect latest fighter data."""
-        model_dir = Path('model')
+        # Check both current directory and main repo
+        current_dir = Path('model')
+        main_repo_dir = Path('/Users/diyagamah/Documents/ufc-predictor/model')
+        
+        # Prioritize local models if they exist, otherwise check main repo
+        model_dir = current_dir if current_dir.exists() else main_repo_dir
         
         # Try versioned directories first
         training_dirs = sorted([d for d in model_dir.iterdir() 
