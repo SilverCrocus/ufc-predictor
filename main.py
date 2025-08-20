@@ -114,6 +114,17 @@ Examples:
     backtest_parser.add_argument('--bankroll', type=float, default=1000, help='Initial bankroll')
     backtest_parser.add_argument('--export', help='Export results to JSON file')
     
+    # Walk-forward validation command
+    walkforward_parser = subparsers.add_parser('walkforward', help='Run walk-forward validation to address overfitting')
+    walkforward_parser.add_argument('--retrain-months', type=int, default=3, 
+                                   help='Retrain frequency in months (default: 3)')
+    walkforward_parser.add_argument('--validation-mode', choices=['walk_forward', 'static_temporal', 'comparison'], 
+                                   default='walk_forward', help='Validation method')
+    walkforward_parser.add_argument('--tune', action='store_true', help='Tune hyperparameters')
+    walkforward_parser.add_argument('--optimize', action='store_true', help='Create optimized model')
+    walkforward_parser.add_argument('--n-features', type=int, default=32, 
+                                   help='Number of features for optimized model')
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -638,6 +649,53 @@ Examples:
                 print(f"  • Optimized model accuracy: {results['optimized']['accuracy']:.2%}")
                 print(f"  • Speed improvement: {results['optimized']['speed_gain']}")
                 print(f"\n📁 Optimized model ready at: model/optimized/ufc_model_optimized_latest.joblib")
+        
+        elif args.command == 'walkforward':
+            print(f"\n🔄 Running Walk-Forward Validation (Overfitting Analysis)")
+            print(f"  Validation mode: {args.validation_mode}")
+            print(f"  Retrain frequency: {args.retrain_months} months")
+            print(f"  Hyperparameter tuning: {args.tune}")
+            print(f"  Model optimization: {args.optimize}")
+            
+            from src.ufc_predictor.pipelines.enhanced_training_pipeline import EnhancedTrainingPipeline
+            
+            pipeline = EnhancedTrainingPipeline(
+                validation_mode=args.validation_mode,
+                production_mode=False  # Always use validation mode for walkforward
+            )
+            
+            results = pipeline.run_enhanced_pipeline(
+                tune=args.tune,
+                optimize=args.optimize,
+                n_features=args.n_features,
+                retrain_frequency_months=args.retrain_months
+            )
+            
+            print("\n✅ Walk-forward validation completed!")
+            
+            # Print key results
+            if 'walk_forward_validation' in results:
+                wf = results['walk_forward_validation']
+                print(f"\n📊 Overfitting Analysis Results:")
+                print(f"  • Mean test accuracy: {wf['mean_test_accuracy']:.4f} ± {wf['std_test_accuracy']:.4f}")
+                print(f"  • Mean overfitting gap: {wf['mean_overfitting_gap']:.4f}")
+                print(f"  • Model stability score: {wf['model_stability_score']:.4f}")
+                print(f"  • Total model retrains: {wf['total_retrains']}")
+                
+                if wf['mean_overfitting_gap'] < 0.10:
+                    print(f"  ✅ Overfitting is under control ({wf['mean_overfitting_gap']:.1%})")
+                else:
+                    print(f"  ⚠️ High overfitting detected ({wf['mean_overfitting_gap']:.1%}) - consider model adjustments")
+                
+                print(f"\n📁 Detailed report: {wf['validation_report_path']}")
+            
+            if 'validation_comparison' in results:
+                comp = results['validation_comparison']
+                print(f"\n📈 Validation Method Comparison:")
+                print(f"  • Static split overfitting: {comp['static_overfitting_gap']:.4f}")
+                print(f"  • Walk-forward overfitting: {comp['walk_forward_overfitting_gap']:.4f}")
+                print(f"  • Improvement: {comp['overfitting_improvement']:.4f} ({comp['overfitting_improvement_pct']:.1f}%)")
+                print(f"  • Recommended method: {comp['recommended_method']}")
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
